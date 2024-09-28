@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "express": "^4.21.0",
+    "mailparser": "^3.7.1",
+    "openpgp": "^5.11.2",
+    "smtp-server": "^3.13.5"
+  }
+}
