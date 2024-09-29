@@ -9,50 +9,66 @@ const simpleParser = require('mailparser').simpleParser;
 var app = express();
 
 const server = new SMTPServer({
-    secure: true,
+    // secure: true,
+    starttls: true,
+    logger: true,
     authOptional: true,
     key: fs.readFileSync(config.ServerDefaultKey),
     cert: fs.readFileSync(config.ServerDefaultCert),
 
-    onConnect(address, session, callback) {
-        //check from
-        if (config.domains != null) {
-            let allowed = false;
-            config.domains.forEach( (domain) => {
-                if (session.envelope.mailFrom.address == domain) {
-                    allowed = true;
-                }
-            })
-            if (!allowed) {
-                return callback(new Error("Your domain (" + session.envelope.mailFrom.address + ") is not allowed to send mails to this server"));
-            }
-        }
-        //check receipient
-        if (session.envelope.rcptTo.address != config.smtp.mailaddress)
-            return callback(new Error("Receipient not found.")); 
-           
-        // Accept the address
-        return callback(); 
-    },
     async onData(stream, session, callback) {
-        options = {
-            skipHtmlToText: true,
-            skipTextToHtml: true,
-            skipTextLinks: true
-        }
-        let parsed = await simpleParser(stream, options);
+        //check from
+        stream.on('data', async (data) => {
+            console.log('reading data');
+            if (config.domains != null) {
+                let allowed = false;
+                for ( domain in config.domains) {
+                    if ((session.envelope.mailFrom.address).split('@').pop() == domain) {
+                        console.log('domain is allowed: ' + (session.envelope.mailFrom.address).split('@').pop());
+                        allowed = true;
+                    }
+                }
+                if (!allowed) {
+                    console.log('domain is not allowed');
+                    return callback(new Error("Your domain (" + (session.envelope.mailFrom.address).split('@').pop() + ") is not allowed to send mails to this server")); //TEST
+                }
+            }
+            //check receipient
+            console.log('receipients: ' + session.envelope.rcptTo);
+            if (session.envelope.rcptTo[0].address != config.smtp.mailaddress) {
+                console.log('wrong receipient');
+                return callback(new Error("Receipient not found.")); //TEST
+            }
+                
+                
+            options = {
+                skipHtmlToText: true,
+                skipTextToHtml: true,
+                skipTextLinks: true
+            }
+            console.log('before parser');
+            let parsed = await simpleParser(data, options);
+            console.log('after parser')
+
+            //search for .asc-file attachment
+            if (parsed.attachments) {
+                console.log('attachment found');
+                //TODO check if it's an valid openpgp key (skip for now)
+                //TODO save cert in pending folder
+                path = config.datadir + "/" + session.envelope.mailFrom; //FIXME
+                //TODO create token
+                //TODO create mail
+                //TODO sign mail (skip for now)
+                //TODO send mail with validation link and token
+            }
+        }); 
+        // Accept the address
+        stream.on('end', () => {
+            console.log('stream end')
+            return callback(null, "Message processed"); 
+        })
         
-        //search for .asc-file attachment
-        if (parsed.attachments) {
-            //TODO check if its an valid openpgp key
-            //TODO save cert in pending folder
-            path = config.datadir + "/" + session.envelope.mailFrom; //FIXME
-            //TODO create token
-            //TODO create mail
-            //TODO sign mail
-            //TODO send mail with validation link and token
-        }
-    },
+    }
 });
 
 server.on('error', (err) => {
