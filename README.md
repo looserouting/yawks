@@ -6,7 +6,7 @@ This is another aproach for an web key service which is also a web key directory
 
 The idea is that anybody can add his OpenPGP Key to this server by validating his mail address by sending an mail to the server with his key in it and klicking on a link send to his mail address.
 
-A MTA can so search for the key to write encrypted mails.
+A MUA can so search for the key to write encrypted mails.
 
 <mark>This is not following https://datatracker.ietf.org/doc/html/draft-koch-openpgp-webkey-service-18</mark>
 
