@@ -5,6 +5,7 @@ const tls = require('node:tls');
 const SMTPServer = require("smtp-server").SMTPServer;
 const config = require("./config.js");
 const simpleParser = require('mailparser').simpleParser;
+const openpgp = require('openpgp');
 
 var app = express();
 
@@ -53,10 +54,18 @@ const server = new SMTPServer({
             //search for .asc-file attachment
             if (parsed.attachments) {
                 console.log('attachment found');
+                console.log(parsed.attachment);
                 //TODO check if it's an valid openpgp key (skip for now)
-                //TODO save cert in pending folder
-                path = config.datadir + "/" + session.envelope.mailFrom; //FIXME
+                const publicKeyArmored = 'attachment';
+                //TODO mail address in key must match sender address
+                //TODO get mail address from key and compatre to sender mail
+                senderName = session.envelope.mailFrom.address.split("@")[0];
+                //TODO create wkd hash
+                //echo -n name | sha1sum | cut -f1 -d" " | xxd -r -p | zbase32-encode/zbase32-encode
                 //TODO create token
+                //TODO save cert in pending folder
+                path = config.datadir + "/" + (session.envelope.mailFrom.address).split('@').pop() + '/pending/;
+                fs.writeFile(path + hash, content, err => {} );
                 //TODO create mail
                 //TODO sign mail (skip for now)
                 //TODO send mail with validation link and token
