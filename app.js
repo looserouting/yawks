@@ -1,11 +1,13 @@
-var fs = require('node:fs');
-var https = require('https');
-var express = require('express');
-const tls = require('node:tls');
-const SMTPServer = require("smtp-server").SMTPServer;
-const config = require("./config.js");
-const simpleParser = require('mailparser').simpleParser;
-const openpgp = require('openpgp');
+import fs from 'node:fs';
+import https from 'https';
+import express from 'express';
+import tls from 'node:tls';
+import { SMTPServer } from "smtp-server";
+import config from './config.js';
+import { simpleParser } from 'mailparser';
+import openpgp from 'openpgp';
+import crypto from 'crypto';
+import zbase32 from 'zbase32';
 
 var app = express();
 
@@ -18,12 +20,21 @@ const server = new SMTPServer({
     cert: fs.readFileSync(config.ServerDefaultCert),
 
     async onData(stream, session, callback) {
-        //check from
-        stream.on('data', async (data) => {
-            console.log('reading data');
+        let emailData = '';
+        let smtpFrom = session.envelope.mailFrom.address;
+        console.log('reading data');
+        console.log('SMTP From: ' + smtpFrom);
+
+        
+        stream.on('data', (chunk) => {
+            emailData += chunk;
+        });
+
+        stream.on('end', async () => {
+            console.log('stream end')
             if (config.domains != null) {
                 let allowed = false;
-                for ( domain in config.domains) {
+                for ( let domain in config.domains) {
                     if ((session.envelope.mailFrom.address).split('@').pop() == domain) {
                         console.log('domain is allowed: ' + (session.envelope.mailFrom.address).split('@').pop());
                         allowed = true;
@@ -34,49 +45,57 @@ const server = new SMTPServer({
                     return callback(new Error("Your domain (" + (session.envelope.mailFrom.address).split('@').pop() + ") is not allowed to send mails to this server")); //TEST
                 }
             }
+
             //check receipient
-            console.log('receipients: ' + session.envelope.rcptTo);
-            if (session.envelope.rcptTo[0].address != config.smtp.mailaddress) {
+            console.log('receipients: ' + session.envelope.rcptTo); 
+            if (session.envelope.rcptTo[0].address != config.smtp.mailaddress) { //FIXME multiple recipients?
                 console.log('wrong receipient');
                 return callback(new Error("Receipient not found.")); //TEST
             }
-                
-                
-            options = {
+
+            let opt = {
                 skipHtmlToText: true,
                 skipTextToHtml: true,
                 skipTextLinks: true
             }
-            console.log('before parser');
-            let parsed = await simpleParser(data, options);
-            console.log('after parser')
+            console.log(smtpFrom);
+            simpleParser(emailData, opt, (err, parsed) => {
+                if (err)
+                    console.log(err);
+                //search for .asc-file attachment
+                console.log('Message parsed');
+                if (parsed.attachments) {
+                    console.log('attachment found');
+                    //TODO check if it's an valid openpgp key (skip for now)
+                    const publicKeyArmored = 'attachment';
+                    //TODO mail address in key must match sender address
+                    //TODO get mail address from key and compare to sender mail
+                    const [smtpFromLocalpart] = smtpFrom.split('@');
+                    console.log('Local part: ' + smtpFromLocalpart);
+                    //TODO create wkd hash
+                    //echo -n name | sha1sum | cut -f1 -d" " | xxd -r -p | zbase32-encode/zbase32-encode
+                    let wdkHash = crypto.createHash('sha1').update(smtpFromLocalpart);
+                    wdkHash = zbase32.encode(new TextEncoder('utf-8').encode(wdkHash));
+                    console.log(wdkHash);
+                    //TODO create token
+                    let token = '';
+                    //TODO save cert in pending folder
+                    let path = config.datadir + "/" + smtpFrom.split('@').pop() + '/pending/';
+                   
+                    /*
+                    fs.writeFile(path + wdkHash, content, err => {
+                        console.log(err);
+                    });
+                    */
 
-            //search for .asc-file attachment
-            if (parsed.attachments) {
-                console.log('attachment found');
-                console.log(parsed.attachment);
-                //TODO check if it's an valid openpgp key (skip for now)
-                const publicKeyArmored = 'attachment';
-                //TODO mail address in key must match sender address
-                //TODO get mail address from key and compatre to sender mail
-                senderName = session.envelope.mailFrom.address.split("@")[0];
-                //TODO create wkd hash
-                //echo -n name | sha1sum | cut -f1 -d" " | xxd -r -p | zbase32-encode/zbase32-encode
-                //TODO create token
-                //TODO save cert in pending folder
-                path = config.datadir + "/" + (session.envelope.mailFrom.address).split('@').pop() + '/pending/;
-                fs.writeFile(path + hash, content, err => {} );
-                //TODO create mail
-                //TODO sign mail (skip for now)
-                //TODO send mail with validation link and token
-            }
-        }); 
-        // Accept the address
-        stream.on('end', () => {
-            console.log('stream end')
+                    //TODO create mail
+                    //TODO sign mail (skip for now)
+                    //TODO send mail with validation link and token
+                }
+            });
             return callback(null, "Message processed"); 
-        })
-        
+
+        }); 
     }
 });
 
