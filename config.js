@@ -1,11 +1,19 @@
 const config = {
-    datadir: "/var/lib/gnupg/wks",
+    datadir: "./wkd",
     ServerDefaultKey: "./misc/domain.eu.server.key",
     ServerDefaultCert: "./misc/domain.eu.server.cert",
+    pgpprivkey: "./misc/domain.eu.pgp.cert",
+    pgppubkey: "./misc/domain.eu.pgp.key",
+    pgpkeypass: '',
     smtp: {
-        pgpcert: "./misc/domain.eu.pgp.cert",
-        pgpkey: "./misc/domain.eu.pgp.key",
-        mailaddress: "key-submission@domain.eu"
+
+        mailaddress: "key-submission@domain.eu",
+        port: 25,
+        host: '',
+        auth: {
+            user: '',
+            pass: ''
+        }
     },
     domains: {
         "example.eu": {

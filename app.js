@@ -8,11 +8,23 @@ import { simpleParser } from 'mailparser';
 import openpgp from 'openpgp';
 import crypto from 'crypto';
 import zbase32 from 'zbase32';
+import nodemailer from 'nodemailer';
 
 const app = express();
 
 //TODO check if certs and keys exist
 //TODO create wkd skeleton for all domains in config.
+
+const transporter = nodemailer.createTransport({
+    host: config.smtp.host,
+    port: config.smtp.port,
+    secure: false,
+    auth: {
+        user: config.smtp.auth,
+        pass: config.smtp.pass
+    }
+});
+
 
 const allowedDomains = new Set(Object.keys(config.domains));
 const server = new SMTPServer({
@@ -24,8 +36,8 @@ const server = new SMTPServer({
 
     async onData(stream, session, callback) {
         let emailData = '';
-        let smtpFrom = session.envelope.mailFrom.address;
-        let fromDomain = session.envelope.mailFrom.address.split('@').pop();
+        const smtpFrom = session.envelope.mailFrom.address;
+        const fromDomain = session.envelope.mailFrom.address.split('@').pop();
 
         console.log('Reading data');
         console.log(`SMTP From: ${smtpFrom}`);
@@ -44,7 +56,7 @@ const server = new SMTPServer({
             console.log('Stream end');
 
             //check receipient
-            console.log('Recipients: ' + session.envelope.rcptTo); 
+            console.log('Recipients: ' + session.envelope.rcptTo);
             if (session.envelope.rcptTo[0].address !== config.smtp.mailaddress) { //FIXME multiple recipients?
                 console.log('Wrong recipient');
                 return callback(new Error("Receipient not found.")); //TEST
@@ -67,27 +79,26 @@ const server = new SMTPServer({
                 if (parsed.attachments) {
                     console.log('Attachment found');
                     //console.log(parsed.attachments);
-                    //TODO check if it's an valid openpgp key (skip for now)
-                    // contentType: 'applicatin/pgp-keys';                    
+                    //check if it's an valid openpgp key
                     const publicKeyArmored = parsed.attachments[0].content.toString();
                     let userIDs;
                     try {
                         const publicKey = await openpgp.readKey({ armoredKey: publicKeyArmored });
-              
+
                         // Check if the key has at least one user ID
                         userIDs = publicKey.getUserIDs();
                         if (userIDs.length !== 1) {
                             console.error("The OpenPGP key must have exactly one user ID.");
                             return callback(new Error("The OpenPGP key must have exactlyone user ID."));
                         }
-                
+
                         // Check if the key is expired
                         const expirationTime = publicKey.getExpirationTime();
                         if (expirationTime && expirationTime < new Date()) {
                             console.error("The OpenPGP key is expired.");
                             return callback(new Error("The OpenPGP key is expired."));
                         }
-                
+
                         // Check if the key is revoked
                         const isRevoked = await publicKey.isRevoked();
                         if (isRevoked) {
@@ -101,35 +112,89 @@ const server = new SMTPServer({
 
                     //console.log(userIDs);
                     const pgpEmail = userIDs[0].match(/<([^>]+)>/)[1];
-                    const [PGPlocalPart] = pgpEmail.split('@');
-                    console.log(`Local part of the email in the OpenPGP key: ${PGPlocalPart}`);
+                    console.log(`Email in the OpenPGP key: ${pgpEmail}`);
                     //mail address in key must match sender address
                     if (smtpFrom !== pgpEmail) {
                         return callback(new Error("Key does not belong to the sender"));
                     }
                     //create wkd hash
-                    const [smtpFromLocalpart] = smtpFrom.split('@');
+                    const [smtpFromLocalpart, smtpFromDomain] = smtpFrom.split('@');
                     console.log(`Local part in SMTP: ${smtpFromLocalpart}`);
-                    //echo -n name | sha1sum | cut -f1 -d" " | xxd -r -p | zbase32-encode/zbase32-encode
+                    //echo -n name | sha1sum | cut -f1 -d" " | xxd -r -p | zbase32-encode
                     const wdkHash = zbase32.encode(crypto.createHash('sha1').update(smtpFromLocalpart).digest());
                     console.log(`WKD Hash: ${wdkHash}`);
                     //create token
                     const token = crypto.randomBytes(16).toString('hex');
-                    // save informations for validation
-                    //TODO save cert in pending folder
-                    let path = `${config.datadir}/${smtpFrom.split('@').pop()}/pending/`;
-                    fs.writeFile(path + wdkHash, publicKeyArmored, err => {
+                    // save informations for validation and cert
+                    let path = `${config.datadir}/${smtpFromDomain}`;
+                    fs.writeFile(`${path}/pending/${wdkHash}`, publicKeyArmored, err => {
+                        console.log(err);
+                    });
+                    const tokeFile = `{domain: ${smtpFromDomain}, wdkHash: ${wdkHash}}`;
+                    fs.writeFile(`${path}/requests/${token}`, tokeFile, err => {
                         console.log(err);
                     });
 
-                    //TODO create mail
-                    //TODO sign mail (skip for now)
-                    //TODO send mail with validation link and token
+                    //create mail with validation link based on token
+                    const mailOptions = {
+                        from: config.smtp.mailaddress, // Sender address
+                        to: smtpFrom, // Receiver address (the sender of the original email)
+                        subject: 'Validation Required for Your OpenPGP Key',
+                        text: `Hello,
+                    
+Please validate your OpenPGP key by clicking the following link:
+
+https://localhost/validate?token=${token}
+
+Thank you.`,
+                        html: `<p>Hello,</p>
+<p>Please validate your OpenPGP key by clicking the following link:</p>
+<a href="https://localhost/validate?token=${token}">Validate Key</a>
+<p>Thank you.</p>`
+                    };
+                    //sign mail
+                    const privateKeyArmored = fs.readFileSync(config.pgpprivkey, 'utf8'); // Load the private key from file
+                    const passphrase = config.pgpkeypass;
+                    const privateKey = await openpgp.decryptKey({
+                        privateKey: await openpgp.readPrivateKey({ armoredKey: privateKeyArmored }),
+                        passphrase
+                    });
+
+                    const mimeMessage = `Content-Type: multipart/alternative; boundary="boundary"
+    
+--boundary
+Content-Type: text/plain; charset="utf-8"
+
+${mailOptions.text}
+
+--boundary
+Content-Type: text/html; charset="utf-8"
+
+${mailOptions.html}
+
+--boundary--`;
+
+                    const signed = await openpgp.sign({
+                        message: await openpgp.createCleartextMessage({ text: mimeMessage }), // Cleartext message
+                        signingKeys: privateKey
+                    });
+
+                    mailOptions.text = signed; // Replace the plain text with the signed message
+                    mailOptions.html = ''; // Clear the HTML part since it's included in the signed message
+
+                    //send mail
+                    transporter.sendMail(mailOptions, (error, info) => {
+                        if (error) {
+                            console.log('Error sending email:', error);
+                            return callback(new Error("Failed to send validation email."));
+                        }
+                        console.log('Validation email sent:', info.response);
+                        return callback(null, "Message processed and validation email sent.");
+                    });
                 }
             });
-            return callback(null, "Message processed"); 
-
-        }); 
+            return callback(null, "Message processed");
+        });
     }
 });
 
