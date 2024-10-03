@@ -20,8 +20,7 @@ const config = {
             cert: null,
             key: null
         }
-
     }
-}
+};
 
 export default config;
