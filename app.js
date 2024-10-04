@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import path from 'path';
 import https from 'https';
 import express from 'express';
 import tls from 'node:tls';
@@ -9,11 +10,69 @@ import openpgp from 'openpgp';
 import crypto from 'crypto';
 import zbase32 from 'zbase32';
 import nodemailer from 'nodemailer';
+import { exit } from 'node:process';
 
 const app = express();
 
 //TODO check if certs and keys exist
+function checkFilesExist() {
+    const filesToCheck = [
+        config.ServerDefaultKey,
+        config.ServerDefaultCert,
+        config.pgpprivkey,
+        config.pgppubkey,
+        ...Object.values(config.domains).flatMap(domain => [domain.cert, domain.key])
+    ];
+
+    const missingFiles = filesToCheck.filter(filePath => filePath && !fs.existsSync(filePath));
+
+    if (missingFiles.length > 0) {
+        console.log('The following files are missing:', missingFiles);
+        return false;
+    }
+
+    console.log('All files exist.');
+    return true;
+}
+
+if (!checkFilesExist()) {
+    console.log('check your config');
+    exit();
+}
+
 //TODO create wkd skeleton for all domains in config.
+function ensureDirectoryExists(dirPath) {
+    if (!fs.existsSync(dirPath)) {
+        fs.mkdirSync(dirPath, { recursive: true });
+    }
+}
+
+function ensureFileExists(filePath) {
+    if (!fs.existsSync(filePath)) {
+        fs.writeFileSync(filePath, '');
+    }
+}
+
+function setupDirectories() {
+    const datadir = config.datadir;
+    const requestsDir = path.join(datadir, 'requests');
+    ensureDirectoryExists(requestsDir);
+
+    for (const domain in config.domains) {
+        const domainDir = path.join(datadir, domain);
+        const huDir = path.join(domainDir, 'hu');
+        const pendingDir = path.join(domainDir, 'pending');
+        const policyFile = path.join(domainDir, 'policy');
+
+        ensureDirectoryExists(domainDir);
+        ensureDirectoryExists(huDir);
+        ensureDirectoryExists(pendingDir);
+        ensureFileExists(policyFile);
+    }
+}
+
+// Call the function to set up directories
+setupDirectories();
 
 const transporter = nodemailer.createTransport({
     host: config.smtp.host,
@@ -117,6 +176,7 @@ const server = new SMTPServer({
                     if (smtpFrom !== pgpEmail) {
                         return callback(new Error("Key does not belong to the sender"));
                     }
+
                     //create wkd hash
                     const [smtpFromLocalpart, smtpFromDomain] = smtpFrom.split('@');
                     console.log(`Local part in SMTP: ${smtpFromLocalpart}`);
@@ -125,13 +185,14 @@ const server = new SMTPServer({
                     console.log(`WKD Hash: ${wdkHash}`);
                     //create token
                     const token = crypto.randomBytes(16).toString('hex');
-                    // save informations for validation and cert
+
+                    // Save informations for validation and cert
                     let path = `${config.datadir}/${smtpFromDomain}`;
-                    fs.writeFile(`${path}/pending/${wdkHash}`, publicKeyArmored, err => {
+                    fs.promises.writeFile(`${path}/pending/${wdkHash}`, publicKeyArmored, err => {
                         console.log(err);
                     });
                     const tokeFile = `{domain: ${smtpFromDomain}, wdkHash: ${wdkHash}}`;
-                    fs.writeFile(`${path}/requests/${token}`, tokeFile, err => {
+                    fs.promises.writeFile(`${config.datadir}/requests/${token}`, tokeFile, err => {
                         console.log(err);
                     });
 
@@ -244,11 +305,27 @@ app.get('/\.well-known/openpgpkey/:domain/hu/:hash', (req, res) => {
 });
 
 // User clicked on a validation link
-app.get('/api/:token', (req, res) => {
-    console.log("Validation completion");
-    console.log(req.params.token);
-    res.send("Blubb");
-    // TODO search for pending validations in datenbase using the token
-    // TODO if found move cert to hu folder
-    // TODO send confirmation mail
+app.get('/api/:token', async (req, res) => {
+    try {
+        console.log("Validation completion");
+        console.log(req.params.token);
+        
+        // Search for pending validations using the token. when found copy to hu
+        const tokenFile = `${config.datadir}/requests/${req.params.token}`;
+        const data = await fs.promises.readFile(tokenFile);
+        console.log(data);
+        try {
+            await fs.promises.rename(data.wdkHash, `${config.datadir}/${data.domain}/hu/${data.wdkHash}`);
+            console.log(`Key moved to ${config.datadir}/${data.domain}/hu/${data.wdkHash}`);
+            await fs.promises.unlink(tokenFile);
+            console.log(`Remove token file: ${tokenFile}`);
+        } catch (err) {
+            console.error(err);
+            res.status(500).send("Error processing request");
+        }
+        res.send("Key has been saved on the server");
+    } catch (err) {
+        console.error(err);
+        res.status(500).send("Error processing request");
+    }
 });
