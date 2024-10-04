@@ -28,8 +28,10 @@ npm install
 
 ## DNS records
 
+example for domain positron-it.de
+
 ```
-openpgpkey  MX  openpgpkey.positron-it.de
+.           MX  openpgpkey.positron-it.de
 openpgpkey  A   <yawks server IP>
 ```
 
