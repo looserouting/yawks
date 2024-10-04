@@ -93,6 +93,7 @@ if (config.sendmail == true) {
     });
 }
 
+
 const allowedDomains = new Set(Object.keys(config.domains));
 const server = new SMTPServer({
     starttls: true,
@@ -103,17 +104,6 @@ const server = new SMTPServer({
 
     async onData(stream, session, callback) {
         let emailData = '';
-        const smtpFrom = session.envelope.mailFrom.address;
-        const fromDomain = session.envelope.mailFrom.address.split('@').pop();
-
-        console.log('Reading data');
-        console.log(`SMTP From: ${smtpFrom}`);
-
-        if (allowedDomains.size > 0 && !allowedDomains.has(fromDomain)) {
-            console.log('Domain is not allowed');
-            return callback(new Error(`Your domain ${fromDomain} is not allowed to send mails to this server`));
-        }
-        console.log(`Domain is allowed: ${fromDomain}`);
 
         stream.on('data', (chunk) => {
             emailData += chunk;
@@ -121,6 +111,17 @@ const server = new SMTPServer({
 
         stream.on('end', async () => {
             console.log('Stream end');
+            const smtpFrom = session.envelope.mailFrom.address;
+            const fromDomain = session.envelope.mailFrom.address.split('@').pop();
+    
+            console.log('Reading data');
+            console.log(`SMTP From: ${smtpFrom}`);
+    
+            if (allowedDomains.size > 0 && !allowedDomains.has(fromDomain)) {
+                console.log('Domain is not allowed');
+                return callback(new Error(`Your domain ${fromDomain} is not allowed to send mails to this server`));
+            }
+            console.log(`Domain is allowed: ${fromDomain}`);
 
             //check receipient
             console.log('Recipients: ' + session.envelope.rcptTo);
@@ -139,6 +140,7 @@ const server = new SMTPServer({
             simpleParser(emailData, opt, async (err, parsed) => {
                 if (err) {
                     console.log(err);
+                    return callback(err);
                 }
 
                 //search for .asc-file attachment
