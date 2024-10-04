@@ -14,8 +14,8 @@ import { exit } from 'node:process';
 
 const app = express();
 
-//TODO check if certs and keys exist
-function checkFilesExist() {
+//check if certs and keys exist
+async function checkFilesExist() {
     const filesToCheck = [
         config.ServerDefaultKey,
         config.ServerDefaultCert,
@@ -35,21 +35,29 @@ function checkFilesExist() {
     return true;
 }
 
-if (!checkFilesExist()) {
+if (!(await checkFilesExist())) {
     console.log('check your config');
     exit();
 }
 
-//TODO create wkd skeleton for all domains in config.
+//create wkd skeleton for all domains in config.
 function ensureDirectoryExists(dirPath) {
-    if (!fs.existsSync(dirPath)) {
-        fs.mkdirSync(dirPath, { recursive: true });
+    try {
+        if (!fs.existsSync(dirPath)) {
+            fs.mkdirSync(dirPath, { recursive: true });
+        }
+    } catch (error) {
+        console.error(`Error creating directory: ${error}`);
     }
 }
 
 function ensureFileExists(filePath) {
-    if (!fs.existsSync(filePath)) {
-        fs.writeFileSync(filePath, '');
+    try {
+        if (!fs.existsSync(filePath)) {
+            fs.writeFileSync(filePath, '');
+        }
+    } catch (error) {
+        console.error(`Error creating file: ${error}`);      
     }
 }
 
@@ -125,13 +133,15 @@ const server = new SMTPServer({
             }
             console.log(`Domain is allowed: ${fromDomain}`);
 
-            //check receipient
+            //check recipients
             console.log('Recipients: ' + session.envelope.rcptTo);
-            if (session.envelope.rcptTo[0].address !== config.smtp.mailaddress) { //FIXME multiple recipients?
-                console.log('Wrong recipient');
-                let err = new Error("Receipient not found.");
-                err.responseCode = 500;
-                return callback(err);
+            for (const recipient of session.envelope.rcptTo) {
+                if (recipient.address !== config.smtp.mailaddress) {
+                    console.log('Wrong recipient');
+                    let err = new Error("Recipient not found.");
+                    err.responseCode = 500;
+                    return callback(err);
+                }
             }
 
             let opt = {
@@ -164,7 +174,7 @@ const server = new SMTPServer({
                         userIDs = publicKey.getUserIDs();
                         if (userIDs.length !== 1) {
                             console.error("The OpenPGP key must have exactly one user ID.");
-                            let err = new Error("The OpenPGP key must have exactlyone user ID.");
+                            let err = new Error("The OpenPGP key must have exactly one user ID.");
                             err.responseCode = 500;
                             return callback(err);
                         }
@@ -214,24 +224,17 @@ const server = new SMTPServer({
 
                     // Save informations for validation and cert
                     let path = `${config.datadir}/${smtpFromDomain}`;
-                    fs.promises.writeFile(`${path}/pending/${wdkHash}`, publicKeyArmored, (error) => {
-                        if (error) {
+                    fs.promises.writeFile(`${path}/pending/${wdkHash}`, publicKeyArmored)
+                        .then( () => {
+                            const tokeFile = `{domain: ${smtpFromDomain}, wdkHash: ${wdkHash}}`;
+                            return fs.promises.writeFile(`${config.datadir}/requests/${token}`, tokeFile);
+                        })
+                        .catch( (error) => {
                             console.log(error);
                             let err = new Error('Error processing the key');
                             err.responseCode = 500;
                             return callback(err);
-                        } else {
-                            const tokeFile = `{domain: ${smtpFromDomain}, wdkHash: ${wdkHash}}`;
-                            fs.promises.writeFile(`${config.datadir}/requests/${token}`, tokeFile, (error) => {
-                                if (error) {
-                                    console.log(error);
-                                    let err = new Error('Error processing the key');
-                                    err.responseCode = 500;
-                                    return callback(err);
-                                }
-                            });
-                        }
-                    });
+                        });
                     
                     //create mail with validation link based on token
                     const mailOptions = {
