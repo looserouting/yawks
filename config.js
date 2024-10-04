@@ -6,7 +6,6 @@ const config = {
     pgppubkey: "./misc/domain.eu.pgp.key",
     pgpkeypass: '',
     smtp: {
-
         mailaddress: "key-submission@domain.eu",
         port: 25,
         host: '',
