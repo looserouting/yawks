@@ -89,7 +89,9 @@ gpg --output /var/www/yaks/submission.key --armor \
 
 ## Configuration
 
-Your configuration file should look like this
+Rename `config.js.example` to `config.js` and modify the configuration to your needs.
+
+Your configuration file could look like this
 ```
 const config = {
     datadir: "./",
@@ -99,6 +101,7 @@ const config = {
     pgppubkey: "./positron-it.de/hu/54f6ry7x1qqtpor16txw5gdmdbbh6a73",
     pgpkeypass: '',
     smtp: {
+        sendmail: true,
         mailaddress: "key-submission@positron-it.de",
         port: 25,
         host: '', 
@@ -120,10 +123,11 @@ export default config;
 
 <mark>The configuration part will be rewritten. It's really upgly. But for now it will do his job.</mark>
 
-the `smtp` section is for sending mails to a real mail server for delivering.
+If you set the `sendmail: true` in the `smtp` section then `host`, `port` and `auth` will be ignored.
+
 The smtp server will only accept mails from known domains which are send to the `smtp.mailaddress`.
 
-You can add more doamins if you want to host keys for other domains. You will also need to add an A record for openpgpkey for this domain.
+You can add more domains if you want to host keys for other domains. You will also need to add an A record for openpgpkey for this domains.
 
 ## Allow node to bind to privileged ports
 
