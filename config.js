@@ -6,6 +6,7 @@ const config = {
     pgppubkey: "./misc/domain.eu.pgp.key",
     pgpkeypass: '',
     smtp: {
+        sendmail: true,
         mailaddress: "key-submission@domain.eu",
         port: 25,
         host: '',

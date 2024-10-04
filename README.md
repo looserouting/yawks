@@ -33,6 +33,10 @@ openpgpkey  MX  openpgpkey.positron-it.de
 openpgpkey  A   <yawks server IP>
 ```
 
+You probably need to add the server IP to your SPF record
+
+DKIM is not supported right now.
+
 ### Create SSL certificate for yawks using certbot
 This certificate will be used by the mail server but it will also be used as the default certificate for the web server. The verification links will contain this domain.
 

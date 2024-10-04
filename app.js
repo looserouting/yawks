@@ -74,16 +74,24 @@ function setupDirectories() {
 // Call the function to set up directories
 setupDirectories();
 
-const transporter = nodemailer.createTransport({
-    host: config.smtp.host,
-    port: config.smtp.port,
-    secure: false,
-    auth: {
-        user: config.smtp.auth,
-        pass: config.smtp.pass
-    }
-});
-
+var transporter;
+if (config.sendmail == true) {
+    transporter = nodemailer.createTransport({
+        sendmail: true,
+        newline: 'unix',
+        path: '/usr/sbin/sendmail'
+    });
+} else {
+    transporter = nodemailer.createTransport({
+        host: config.smtp.host,
+        port: config.smtp.port,
+        secure: false,
+        auth: {
+            user: config.smtp.auth,
+            pass: config.smtp.pass
+        }
+    });
+}
 
 const allowedDomains = new Set(Object.keys(config.domains));
 const server = new SMTPServer({
