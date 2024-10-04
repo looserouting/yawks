@@ -119,7 +119,9 @@ const server = new SMTPServer({
     
             if (allowedDomains.size > 0 && !allowedDomains.has(fromDomain)) {
                 console.log('Domain is not allowed');
-                return callback(new Error(`Your domain ${fromDomain} is not allowed to send mails to this server`));
+                let err = new Error(`Your domain ${fromDomain} is not allowed to send mails to this server`);
+                err.responseCode = 500;
+                return callback(err);
             }
             console.log(`Domain is allowed: ${fromDomain}`);
 
@@ -127,7 +129,9 @@ const server = new SMTPServer({
             console.log('Recipients: ' + session.envelope.rcptTo);
             if (session.envelope.rcptTo[0].address !== config.smtp.mailaddress) { //FIXME multiple recipients?
                 console.log('Wrong recipient');
-                return callback(new Error("Receipient not found.")); //TEST
+                let err = new Error("Receipient not found.");
+                err.responseCode = 500;
+                return callback(err);
             }
 
             let opt = {
@@ -140,7 +144,9 @@ const server = new SMTPServer({
             simpleParser(emailData, opt, async (err, parsed) => {
                 if (err) {
                     console.log(err);
-                    return callback(err);
+                    let error = new Error('Could not parse the mail')
+                    error.responseCode = 500;
+                    return callback(error);
                 }
 
                 //search for .asc-file attachment
@@ -158,25 +164,33 @@ const server = new SMTPServer({
                         userIDs = publicKey.getUserIDs();
                         if (userIDs.length !== 1) {
                             console.error("The OpenPGP key must have exactly one user ID.");
-                            return callback(new Error("The OpenPGP key must have exactlyone user ID."));
+                            let err = new Error("The OpenPGP key must have exactlyone user ID.");
+                            err.responseCode = 500;
+                            return callback(err);
                         }
 
                         // Check if the key is expired
                         const expirationTime = publicKey.getExpirationTime();
                         if (expirationTime && expirationTime < new Date()) {
                             console.error("The OpenPGP key is expired.");
-                            return callback(new Error("The OpenPGP key is expired."));
+                            let err = new Error("The OpenPGP key is expired.");
+                            err.responseCode = 500;
+                            return callback(err);
                         }
 
                         // Check if the key is revoked
                         const isRevoked = await publicKey.isRevoked();
                         if (isRevoked) {
                             console.error("The OpenPGP key is revoked.");
-                            return callback(new Error("The OpenPGP key is revoked."));
+                            let err = new Error("The OpenPGP key is revoked.");
+                            err.responseCode = 500;
+                            return callback(err);
                         }
                     } catch (error) {
                         console.log(`This is not a valid openpgp key: ${error}`);
-                        return callback(new Error("Invalid OpenPGP key."));
+                        let err = new Error("Invalid OpenPGP key.");
+                        err.responseCode = 500;
+                        return callback(err);
                     }
 
                     //console.log(userIDs);
@@ -184,7 +198,9 @@ const server = new SMTPServer({
                     console.log(`Email in the OpenPGP key: ${pgpEmail}`);
                     //mail address in key must match sender address
                     if (smtpFrom !== pgpEmail) {
-                        return callback(new Error("Key does not belong to the sender"));
+                        let err = new Error("Key does not belong to the sender");
+                        err.responseCode = 500;
+                        return callback(err);
                     }
 
                     //create wkd hash
@@ -198,14 +214,25 @@ const server = new SMTPServer({
 
                     // Save informations for validation and cert
                     let path = `${config.datadir}/${smtpFromDomain}`;
-                    fs.promises.writeFile(`${path}/pending/${wdkHash}`, publicKeyArmored, err => {
-                        console.log(err);
+                    fs.promises.writeFile(`${path}/pending/${wdkHash}`, publicKeyArmored, (error) => {
+                        if (error) {
+                            console.log(error);
+                            let err = new Error('Error processing the key');
+                            err.responseCode = 500;
+                            return callback(err);
+                        } else {
+                            const tokeFile = `{domain: ${smtpFromDomain}, wdkHash: ${wdkHash}}`;
+                            fs.promises.writeFile(`${config.datadir}/requests/${token}`, tokeFile, (error) => {
+                                if (error) {
+                                    console.log(error);
+                                    let err = new Error('Error processing the key');
+                                    err.responseCode = 500;
+                                    return callback(err);
+                                }
+                            });
+                        }
                     });
-                    const tokeFile = `{domain: ${smtpFromDomain}, wdkHash: ${wdkHash}}`;
-                    fs.promises.writeFile(`${config.datadir}/requests/${token}`, tokeFile, err => {
-                        console.log(err);
-                    });
-
+                    
                     //create mail with validation link based on token
                     const mailOptions = {
                         from: config.smtp.mailaddress, // Sender address
@@ -257,14 +284,15 @@ ${mailOptions.html}
                     transporter.sendMail(mailOptions, (error, info) => {
                         if (error) {
                             console.log('Error sending email:', error);
-                            return callback(new Error("Failed to send validation email."));
+                            let err = new Error('Failed to send validation email.');
+                            err.responeCode = 500;
+                            return callback(err);
                         }
                         console.log('Validation email sent:', info.response);
-                        return callback(null, "Message processed and validation email sent.");
                     });
                 }
             });
-            return callback(null, "Message processed");
+            return callback(null, "Message processed and validation email sent.");
         });
     }
 });
