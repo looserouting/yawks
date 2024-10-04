@@ -24,10 +24,6 @@ const config = {
             cert: "./misc/domain.com.server.cert",
             key:  "./misc/domain.com.server.key"
         },
-        "web.de": {
-            cert: null,
-            key: null
-        }
     }
 };
 
