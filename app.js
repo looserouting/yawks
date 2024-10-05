@@ -83,7 +83,7 @@ function setupDirectories() {
 setupDirectories();
 
 var transporter;
-if (config.sendmail == true) {
+if (config.smtp.sendmail == true) {
     transporter = nodemailer.createTransport({
         sendmail: true,
         newline: 'unix',
@@ -212,7 +212,7 @@ const server = new SMTPServer({
                         err.responseCode = 500;
                         return callback(err);
                     }
-
+                    console.log('Sender address matches user address in OpenPGP key');
                     //create wkd hash
                     const [smtpFromLocalpart, smtpFromDomain] = smtpFrom.split('@');
                     console.log(`Local part in SMTP: ${smtpFromLocalpart}`);
@@ -254,12 +254,25 @@ Thank you.`,
 <p>Thank you.</p>`
                     };
                     //sign mail
-                    const privateKeyArmored = fs.readFileSync(config.pgpprivkey, 'utf8'); // Load the private key from file
+                    // Load the private key from file
+                    const privateKeyArmored = fs.readFileSync(config.pgpprivkey, 'utf8');
                     const passphrase = config.pgpkeypass;
-                    const privateKey = await openpgp.decryptKey({
-                        privateKey: await openpgp.readPrivateKey({ armoredKey: privateKeyArmored }),
-                        passphrase
-                    });
+
+                    // Read the private key
+                    const privateKey = await openpgp.readPrivateKey({ armoredKey: privateKeyArmored });
+
+                    // Check if the private key is not decrypted
+                    let decryptedPrivateKey;
+                    if (!privateKey.isDecrypted()) {
+                        // Decrypt the private key if it is not decrypted
+                        decryptedPrivateKey = await openpgp.decryptKey({
+                            privateKey,
+                            passphrase
+                        });
+                    } else {
+                        // Use the private key as is if it is already decrypted
+                        decryptedPrivateKey = privateKey;
+                    }
 
                     const mimeMessage = `Content-Type: multipart/alternative; boundary="boundary"
     
@@ -277,7 +290,7 @@ ${mailOptions.html}
 
                     const signed = await openpgp.sign({
                         message: await openpgp.createCleartextMessage({ text: mimeMessage }), // Cleartext message
-                        signingKeys: privateKey
+                        signingKeys: decryptedPrivateKey
                     });
 
                     mailOptions.text = signed; // Replace the plain text with the signed message
@@ -288,7 +301,7 @@ ${mailOptions.html}
                         if (error) {
                             console.log('Error sending email:', error);
                             let err = new Error('Failed to send validation email.');
-                            err.responeCode = 500;
+                            err.responseCode = 500;
                             return callback(err);
                         }
                         console.log('Validation email sent:', info.response);
