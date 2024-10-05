@@ -227,8 +227,8 @@ const server = new SMTPServer({
                     let path = `${config.datadir}/${smtpFromDomain}`;
                     fs.promises.writeFile(`${path}/pending/${wdkHash}`, publicKeyArmored)
                         .then(() => {
-                            const tokeFile = `{domain: ${smtpFromDomain}, wdkHash: ${wdkHash}}`;
-                            return fs.promises.writeFile(`${config.datadir}/requests/${token}`, tokeFile);
+                            const tokenFile = `{domain: ${smtpFromDomain}, wdkHash: ${wdkHash}}`;
+                            return fs.promises.writeFile(`${config.datadir}/requests/${token}`, tokenFile);
                         })
                         .catch((error) => {
                             console.log(error);
@@ -250,13 +250,13 @@ const server = new SMTPServer({
                     
 Please validate your OpenPGP key by clicking the following link:
 
-https://${config.wksDomain}/validate?token=${token}
+https://${config.wksDomain}/api/${token}
 
 Thank you.`,
                         html:
 `<p>Hello,</p>
 <p>Please validate your OpenPGP key by clicking the following link:</p>
-<a href="https://${config.wksDomain}/validate?token=${token}">Validate Key</a>
+<a href="https://${config.wksDomain}/api/${token}">Validate Key</a>
 <p>Thank you.</p>`,
                     };
 
@@ -339,29 +339,40 @@ app.get('/\.well-known/openpgpkey/:domain/hu/:hash', (req, res) => {
 
 // User clicked on a validation link
 app.get('/api/:token', async (req, res) => {
-    try {
-        console.log("Validation completion");
-        console.log(req.params.token);
+    const { token } = req.params;
+    const tokenFilePath = `${config.datadir}/requests/${token}`;
 
-        // Search for pending validations using the token. when found copy to hu
-        const tokenFile = `${config.datadir}/requests/${req.params.token}`;
-        const data = await fs.promises.readFile(tokenFile);
-        const parsedData = JSON.parse(data); // Parse the string as JSON
-        try {
-            await fs.promises.rename(
-                parsedData.wdkHash,
-                `${config.datadir}/${data.domain}/hu/${data.wdkHash}`
-            );
-            console.log(`Key moved to ${config.datadir}/${data.domain}/hu/${data.wdkHash}`);
-            await fs.promises.unlink(tokenFile);
-            console.log(`Remove token file: ${tokenFile}`);
-        } catch (err) {
-            console.error(err);
-            res.status(500).send("Error processing request");
-        }
-        res.send("Key has been saved on the server");
+    console.log("Validation completion initiated.");
+    console.log(`Processing token: ${token}`);
+
+    try {
+        // Step 1: Read token file
+        const data = await fs.promises.readFile(tokenFilePath, 'utf8');
+        const parsedData = JSON.parse(data);
+
+        const { domain, wdkHash } = parsedData;
+        const sourcePath = path.join(config.datadir, domain, 'pending', wdkHash);
+        const destinationPath = path.join(config.datadir, domain, 'hu', wdkHash);
+
+        // Step 2: Move file from 'pending' to 'hu'
+        await fs.promises.rename(sourcePath, destinationPath);
+        console.log(`Key successfully moved from ${sourcePath} to ${destinationPath}`);
+
+        // Step 3: Remove token file after processing
+        await fs.promises.unlink(tokenFilePath);
+        console.log(`Token file removed: ${tokenFilePath}`);
+
+        // Send success response
+        return res.status(200).send("Key has been saved on the server");
+
     } catch (err) {
-        console.error(err);
-        res.status(500).send("Error processing request");
+        // Handle different error types more specifically
+        if (err.code === 'ENOENT') {
+            console.error(`File not found: ${err.path}`);
+            return res.status(404).send("Requested file not found");
+        } else {
+            console.error(`Error processing request: ${err.message}`);
+            return res.status(500).send("Error processing request");
+        }
     }
 });
