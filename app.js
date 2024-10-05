@@ -227,7 +227,7 @@ const server = new SMTPServer({
                     let path = `${config.datadir}/${smtpFromDomain}`;
                     fs.promises.writeFile(`${path}/pending/${wdkHash}`, publicKeyArmored)
                         .then(() => {
-                            const tokenFile = `{domain: ${smtpFromDomain}, wdkHash: ${wdkHash}}`;
+                            const tokenFile = `{"domain": "${smtpFromDomain}", "wdkHash": "${wdkHash}"}`;
                             return fs.promises.writeFile(`${config.datadir}/requests/${token}`, tokenFile);
                         })
                         .catch((error) => {
@@ -259,8 +259,6 @@ Thank you.`,
 <a href="https://${config.wksDomain}/api/${token}">Validate Key</a>
 <p>Thank you.</p>`,
                     };
-
-
 
                     //send mail
                     transporter.use('stream', openpgpEncrypt({signingKey : privateKeyArmored, passphrase: passphrase}));
