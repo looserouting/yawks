@@ -160,11 +160,11 @@ const server = new SMTPServer({
                     return callback(error);
                 }
 
-                //search for .asc-file attachment
+                //search for attachment
                 console.log('Message parsed');
                 if (parsed.attachments) {
                     console.log('Attachment found');
-                    //console.log(parsed.attachments);
+
                     //check if it's an valid openpgp key
                     const publicKeyArmored = parsed.attachments[0].content.toString();
                     let userIDs;
@@ -224,19 +224,32 @@ const server = new SMTPServer({
                     const token = crypto.randomBytes(16).toString('hex');
 
                     // Save informations for validation and cert
-                    let path = `${config.datadir}/${smtpFromDomain}`;
-                    fs.promises.writeFile(`${path}/pending/${wdkHash}`, publicKeyArmored)
-                        .then(() => {
-                            const tokenFile = `{"domain": "${smtpFromDomain}", "wdkHash": "${wdkHash}"}`;
-                            return fs.promises.writeFile(`${config.datadir}/requests/${token}`, tokenFile);
-                        })
-                        .catch((error) => {
-                            console.log(error);
-                            let err = new Error('Error processing the key');
-                            err.responseCode = 500;
-                            return callback(err);
-                        });
+                    try {
+                        const domainDir = path.join(config.datadir, smtpFromDomain);
+                        const pendingPath = path.join(domainDir, 'pending');
+                        const wdkHashFile = path.join(pendingPath, wdkHash);
+                        const requestsPath = path.join(config.datadir, 'requests');
+                        const tokenFilePath = path.join(requestsPath, token);
 
+                        // make sure folders exist
+                        await fs.promises.mkdir(pendingPath, { recursive: true });
+                        await fs.promises.mkdir(requestsPath, { recursive: true });
+
+                        // Save public key in pending-file
+                        await fs.promises.writeFile(wdkHashFile, publicKeyArmored);
+
+                        // Create an save token file
+                        const tokenFileContent = JSON.stringify({ domain: smtpFromDomain, wdkHash });
+                        await fs.promises.writeFile(tokenFilePath, tokenFileContent);
+
+                        callback(null); // success
+                    } catch (error) {
+                        console.error('Error saving validation data:', error);
+                        const err = new Error('Error processing the key');
+                        err.responseCode = 500;
+                        callback(err);
+                    }
+                    
                     //create mail with validation link based on token
                     const privateKeyArmored = fs.readFileSync(config.pgpprivkey, 'utf8');
                     const passphrase = config.pgpkeypass;

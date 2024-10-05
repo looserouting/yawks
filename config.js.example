@@ -1,5 +1,5 @@
 const config = {
-    datadir: "./",
+    datadir: "./wkd",
     wksDomain: 'openpgpkey.positron-it.de',
     ServerDefaultKey: "/etc/letsencrypt/live/openpgpkey.positron-it.de/privkey.pem",
     ServerDefaultCert: "/etc/letsencrypt/live/openpgpkey.positron-it.de/cert.pem",
