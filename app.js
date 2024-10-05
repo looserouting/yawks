@@ -237,22 +237,34 @@ const server = new SMTPServer({
                         });
 
                     //create mail with validation link based on token
-                    const mailOptions = {
-                        from: config.smtp.mailaddress, // Sender address
-                        to: smtpFrom, // Receiver address (the sender of the original email)
-                        subject: 'Validation Required for Your OpenPGP Key',
-                        text: `Hello,
+                    const rawMessage =
+`From: "Web Key Service <${config.smtp.mailaddres}
+To: ${smtpFrom}
+Subject: Validation Required for Your OpenPGP Key
+MIME-Version 1.0
+Content-Type: multipart/alternative; boundary="boundary"
+
+--boundary
+Content-Type: text/plain; charset="utf-8"
+
+Hello,
                     
 Please validate your OpenPGP key by clicking the following link:
 
-https://localhost/validate?token=${token}
+https://${config.wksDomain}/validate?token=${token}
+                   
+Thank you.
 
-Thank you.`,
-                        html: `<p>Hello,</p>
+--boundary
+Content-Type: text/html; charset="utf-8"
+
+<p>Hello,</p>
 <p>Please validate your OpenPGP key by clicking the following link:</p>
-<a href="https://localhost/validate?token=${token}">Validate Key</a>
-<p>Thank you.</p>`
-                    };
+<a href="https://${config.wksDomain}/validate?token=${token}">Validate Key</a>
+<p>Thank you.</p>
+
+--boundary--`;
+
                     //sign mail
                     // Load the private key from file
                     const privateKeyArmored = fs.readFileSync(config.pgpprivkey, 'utf8');
@@ -274,27 +286,18 @@ Thank you.`,
                         decryptedPrivateKey = privateKey;
                     }
 
-                    const mimeMessage = `Content-Type: multipart/alternative; boundary="boundary"
-    
---boundary
-Content-Type: text/plain; charset="utf-8"
-
-${mailOptions.text}
-
---boundary
-Content-Type: text/html; charset="utf-8"
-
-${mailOptions.html}
-
---boundary--`;
-
                     const signed = await openpgp.sign({
-                        message: await openpgp.createCleartextMessage({ text: mimeMessage }), // Cleartext message
+                        message: await openpgp.createCleartextMessage({ text: rawMessage }), // Cleartext message
                         signingKeys: decryptedPrivateKey
                     });
 
-                    mailOptions.text = signed; // Replace the plain text with the signed message
-                    mailOptions.html = ''; // Clear the HTML part since it's included in the signed message
+                    const mailOptions = {
+                        envelope: {
+                            from: config.smtp.mailaddress, // Sender address
+                            to: smtpFrom // Receiver address (the sender of the original email)
+                        },
+                        raw: signed
+                    }
 
                     //send mail
                     transporter.sendMail(mailOptions, (error, info) => {
