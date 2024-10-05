@@ -307,13 +307,21 @@ server.on('error', (err) => {
 server.listen(25, () => console.log('SMTP server started'));
 
 const options = {
-    SNICallback: function (domain, callback) {
+    SNICallback: function (hostname, callback) {
+        // Check if the first part of the domain is 'openpgpkey'
+        const domainParts = hostname.split('.');
+        if (domainParts[0] === 'openpgpkey') {
+            // Remove the first part
+            domainParts.shift();
+        }
+        const domain = domainParts.join('.'); // Reconstruct the domain without 'openpgpkey'
+
         let cert = fs.readFileSync(config.ServerDefaultCert);
         let key = fs.readFileSync(config.ServerDefaultKey);
 
         if (config.domains[domain]) {
-            key = fs.readFileSync(config.domains[domain].key);
             cert = fs.readFileSync(config.domains[domain].cert);
+            key = fs.readFileSync(config.domains[domain].key);
         }
 
         callback(null, tls.createSecureContext({
@@ -337,7 +345,7 @@ app.get('/\.well-known/openpgpkey/:domain/hu/:hash', (req, res) => {
     console.log(`Domain: ${req.params.domain}`);
     console.log(`Query: ${Object.entries(req.query)}`);
 
-    const fileName = path.join(dataDir, config.domains[req.params.domain], req.params.hash);
+    const fileName = path.join(dataDir, req.params.domain, 'hu', req.params.hash);
     
     res.sendFile(fileName, (err) => {
         if (err) {
@@ -358,9 +366,12 @@ app.get('/api/:token', async (req, res) => {
         // Search for pending validations using the token. when found copy to hu
         const tokenFile = `${config.datadir}/requests/${req.params.token}`;
         const data = await fs.promises.readFile(tokenFile);
-        console.log(data);
+        const parsedData = JSON.parse(data); // Parse the string as JSON
         try {
-            await fs.promises.rename(data.wdkHash, `${config.datadir}/${data.domain}/hu/${data.wdkHash}`);
+            await fs.promises.rename(
+                parsedData.wdkHash,
+                `${config.datadir}/${data.domain}/hu/${data.wdkHash}`
+            );
             console.log(`Key moved to ${config.datadir}/${data.domain}/hu/${data.wdkHash}`);
             await fs.promises.unlink(tokenFile);
             console.log(`Remove token file: ${tokenFile}`);
