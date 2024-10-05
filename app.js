@@ -57,7 +57,7 @@ function ensureFileExists(filePath) {
             fs.writeFileSync(filePath, '');
         }
     } catch (error) {
-        console.error(`Error creating file: ${error}`);      
+        console.error(`Error creating file: ${error}`);
     }
 }
 
@@ -121,10 +121,10 @@ const server = new SMTPServer({
             console.log('Stream end');
             const smtpFrom = session.envelope.mailFrom.address;
             const fromDomain = session.envelope.mailFrom.address.split('@').pop();
-    
+
             console.log('Reading data');
             console.log(`SMTP From: ${smtpFrom}`);
-    
+
             if (allowedDomains.size > 0 && !allowedDomains.has(fromDomain)) {
                 console.log('Domain is not allowed');
                 let err = new Error(`Your domain ${fromDomain} is not allowed to send mails to this server`);
@@ -225,17 +225,17 @@ const server = new SMTPServer({
                     // Save informations for validation and cert
                     let path = `${config.datadir}/${smtpFromDomain}`;
                     fs.promises.writeFile(`${path}/pending/${wdkHash}`, publicKeyArmored)
-                        .then( () => {
+                        .then(() => {
                             const tokeFile = `{domain: ${smtpFromDomain}, wdkHash: ${wdkHash}}`;
                             return fs.promises.writeFile(`${config.datadir}/requests/${token}`, tokeFile);
                         })
-                        .catch( (error) => {
+                        .catch((error) => {
                             console.log(error);
                             let err = new Error('Error processing the key');
                             err.responseCode = 500;
                             return callback(err);
                         });
-                    
+
                     //create mail with validation link based on token
                     const mailOptions = {
                         from: config.smtp.mailaddress, // Sender address
@@ -327,6 +327,8 @@ const options = {
 const httpsServer = https.createServer(options, app);
 httpsServer.listen(443, () => console.log('HTTPS server started'));
 
+const dataDir = path.resolve(config.datadir);
+
 // MTA is seraching for a public key
 app.get('/\.well-known/openpgpkey/:domain/hu/:hash', (req, res) => {
     console.log('Key search request');
@@ -334,7 +336,9 @@ app.get('/\.well-known/openpgpkey/:domain/hu/:hash', (req, res) => {
     console.log(`Hash: ${req.params.hash}`);
     console.log(`Domain: ${req.params.domain}`);
     console.log(`Query: ${Object.entries(req.query)}`);
-    const fileName = `${config.datadir}/${config.domains[req.params.domain]}/${req.params.hash}`;
+
+    const fileName = path.join(dataDir, config.domains[req.params.domain], req.params.hash);
+    
     res.sendFile(fileName, (err) => {
         if (err) {
             console.error('Error sending file:', err);
@@ -350,7 +354,7 @@ app.get('/api/:token', async (req, res) => {
     try {
         console.log("Validation completion");
         console.log(req.params.token);
-        
+
         // Search for pending validations using the token. when found copy to hu
         const tokenFile = `${config.datadir}/requests/${req.params.token}`;
         const data = await fs.promises.readFile(tokenFile);
