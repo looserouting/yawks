@@ -4,6 +4,7 @@
     "express": "^4.21.0",
     "mailparser": "^3.7.1",
     "nodemailer": "^6.9.15",
+    "nodemailer-openpgp": "^2.2.1",
     "openpgp": "^5.11.2",
     "smtp-server": "^3.13.5",
     "zbase32": "^2.0.3"

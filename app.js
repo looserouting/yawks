@@ -11,6 +11,7 @@ import crypto from 'crypto';
 import zbase32 from 'zbase32';
 import nodemailer from 'nodemailer';
 import { exit } from 'node:process';
+import { openpgpEncrypt } from 'nodemailer-openpgp';
 
 const app = express();
 
@@ -237,66 +238,32 @@ const server = new SMTPServer({
                         });
 
                     //create mail with validation link based on token
+                    const privateKeyArmored = fs.readFileSync(config.pgpprivkey, 'utf8');
+                    const passphrase = config.pgpkeypass;
+
                     const mailOptions = {
                         from: config.smtp.mailaddress, // Sender address
                         to: smtpFrom, // Receiver address (the sender of the original email)
                         subject: 'Validation Required for Your OpenPGP Key',
-                        text: `Hello,
+                        text:
+`Hello,
                     
 Please validate your OpenPGP key by clicking the following link:
 
-https://localhost/validate?token=${token}
+https://${config.wksDomain}/validate?token=${token}
 
 Thank you.`,
-                        html: `<p>Hello,</p>
+                        html:
+`<p>Hello,</p>
 <p>Please validate your OpenPGP key by clicking the following link:</p>
-<a href="https://localhost/validate?token=${token}">Validate Key</a>
-<p>Thank you.</p>`
+<a href="https://${config.wksDomain}/validate?token=${token}">Validate Key</a>
+<p>Thank you.</p>`,
                     };
-                    //sign mail
-                    // Load the private key from file
-                    const privateKeyArmored = fs.readFileSync(config.pgpprivkey, 'utf8');
-                    const passphrase = config.pgpkeypass;
 
-                    // Read the private key
-                    const privateKey = await openpgp.readPrivateKey({ armoredKey: privateKeyArmored });
 
-                    // Check if the private key is not decrypted
-                    let decryptedPrivateKey;
-                    if (!privateKey.isDecrypted()) {
-                        // Decrypt the private key if it is not decrypted
-                        decryptedPrivateKey = await openpgp.decryptKey({
-                            privateKey,
-                            passphrase
-                        });
-                    } else {
-                        // Use the private key as is if it is already decrypted
-                        decryptedPrivateKey = privateKey;
-                    }
-
-                    const mimeMessage = `Content-Type: multipart/alternative; boundary="boundary"
-    
---boundary
-Content-Type: text/plain; charset="utf-8"
-
-${mailOptions.text}
-
---boundary
-Content-Type: text/html; charset="utf-8"
-
-${mailOptions.html}
-
---boundary--`;
-
-                    const signed = await openpgp.sign({
-                        message: await openpgp.createCleartextMessage({ text: mimeMessage }), // Cleartext message
-                        signingKeys: decryptedPrivateKey
-                    });
-
-                    mailOptions.text = signed; // Replace the plain text with the signed message
-                    mailOptions.html = ''; // Clear the HTML part since it's included in the signed message
 
                     //send mail
+                    transporter.use('stream', openpgpEncrypt({signingKey : privateKeyArmored, passphrase: passphrase}));
                     transporter.sendMail(mailOptions, (error, info) => {
                         if (error) {
                             console.log('Error sending email:', error);
