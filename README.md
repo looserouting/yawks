@@ -1,21 +1,20 @@
 # Yet Another Web Key Service
 ---------------------------
-<mark>This Code is Work in Progress and not functioning yet</mark>
+<mark>This Code is not fully tested yet</mark>
 
-This is another aproach for an web key service which is also a web key directory.
+This is another approach for a web key service which is also a web key directory.
 
-The idea is that anybody can add his OpenPGP Key to this server by validating his mail address by sending an mail to the server with his key in it and klicking on a link send to his mail address.
+YAWKS (Yet Another Web Key Service) is an open-source web key service and directory for managing OpenPGP keys. It aims to simplify the process of storing and validating keys for email encryption and signature verification. Users can easily add their OpenPGP keys to the service by validating their email addresses through a simple key submission process.
 
-A MUA can so search for the key to write encrypted mails.
-
-<mark>This is not following https://datatracker.ietf.org/doc/html/draft-koch-openpgp-webkey-service-18</mark>
-
-The reason why I want to write this applicaion is because I didn't find an easy way to add keys to a Web Key Directory. 
+<mark>This WKS is working an described in https://datatracker.ietf.org/doc/html/draft-koch-openpgp-webkey-service-18</mark>
 
 # Setup Guide
 ------------
 
-You need nodejs and npm installed
+## Prerequisites
+- Node.js
+- npm 
+- GnuPG 
 
 ## Download yawks and install modules
 
@@ -136,3 +135,14 @@ You can add more domains if you want to host keys for other domains. You will al
 ```
 setcap 'cap_net_bind_service=+ep' $(which node)
 ```
+
+# Usage
+
+To submit a key:
+
+- Send an email to the YAWKS server with your OpenPGP key attached.
+- Follow the validation link sent to your email. 
+
+# Contributing
+
+Contributions are welcome! Feel free to open an issue for any bugs or feature requests, or submit a pull request to improve the codebase. Please refer to our Issues page for ongoing discussions and tasks.
