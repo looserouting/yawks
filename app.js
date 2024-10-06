@@ -15,6 +15,8 @@ import { openpgpEncrypt } from 'nodemailer-openpgp';
 
 const app = express();
 
+// TODO create submission-address
+
 //check if certs and keys exist
 async function checkFilesExist() {
     const filesToCheck = [
@@ -348,6 +350,21 @@ app.get('/\.well-known/openpgpkey/:domain/hu/:hash', (req, res) => {
     });
 });
 
+app.get('/\.well-known/openpgpkey/:domain/:file', (req, res) => {
+    console.log(`Request for (${req.params.file})`);
+
+    const fileName = path.join(dataDir, req.params.domain, req.params.file);
+
+    res.sendFile(fileName, (err) => {
+        if (err) {
+            console.error('Error sending mail address');
+            res.status(404).send('File not found');
+        } else {
+            console.log('Sent: ', fileName);
+        }
+    });
+});
+
 // User clicked on a validation link
 app.get('/api/:token', async (req, res) => {
     const { token } = req.params;
@@ -386,4 +403,9 @@ app.get('/api/:token', async (req, res) => {
             return res.status(500).send("Error processing request");
         }
     }
+});
+
+app.get("*", (req, res) => {
+    console.log(req);
+    res.status(404).send("PAGE NOT FOUND");
 });
