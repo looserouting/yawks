@@ -164,7 +164,7 @@ const server = new SMTPServer({
  
                 //search for attachment
                 console.log('Message parsed');
-                if (parsed.attachments) {
+                if (parsed.attachments && parsed.attachments.length > 0) {
                     console.log('Attachment found');
 
                     //check if it's an valid openpgp key
@@ -285,10 +285,15 @@ Thank you.`,
                             return callback(err);
                         }
                         console.log('Validation email sent:', info.response);
+                        return callback(null, "Message processed and validation email sent.");
                     });
+                } else {
+                    console.log('No attachments found');
+                    let err = new Error('No attachments found');
+                    err.responseCode = 500;
+                    return callback(err);
                 }
             });
-            return callback(null, "Message processed and validation email sent.");
         });
     }
 });
