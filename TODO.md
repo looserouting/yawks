@@ -38,3 +38,5 @@ User needs to update their keys
 
 remove console.log()'s and write logs into file
 
+# check varify mail if reqest is signed
+
