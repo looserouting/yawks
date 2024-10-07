@@ -5,13 +5,13 @@ import express from 'express';
 import tls from 'node:tls';
 import { SMTPServer } from "smtp-server";
 import config from './config.js';
-import { simpleParser } from 'mailparser';
 import openpgp from 'openpgp';
 import crypto from 'crypto';
 import zbase32 from 'zbase32';
 import nodemailer from 'nodemailer';
 import { exit } from 'node:process';
 import { openpgpEncrypt } from 'nodemailer-openpgp';
+import openpgpMailDecrypt from './src/mailparser-openpgp.js';
 
 const app = express();
 
@@ -147,69 +147,21 @@ const server = new SMTPServer({
                 }
             }
 
-            let opt = {
-                skipHtmlToText: true,
-                skipTextToHtml: true,
-                skipTextLinks: true
-            };
-
             console.log(smtpFrom);
-            simpleParser(emailData, opt, async (err, parsed) => {
+
+            const opt = {
+                privateKeyArmored: fs.readFileSync(config.pgpprivkey).toString(),
+                passphrase: config.pgpkeypass
+            }
+
+            openpgpMailDecrypt(emailData, opt, async (err, parsed) => {
                 if (err) {
                     console.log(err);
                     let error = new Error('Could not parse the mail')
                     error.responseCode = 500;
                     return callback(error);
                 }
-
-                // Check if the email is encrypted by examining the Content-Type
-                const contentType = parsed.headers.get('content-type');
-                if (contentType && contentType.includes('multipart/encrypted')) {
-                    console.log('Email is encrypted, attempting to decrypt');
-
-                    try {
-                        const privateKeyArmored = fs.readFileSync(config.pgpprivkey, 'utf8');
-                        const passphrase = config.pgpkeypass;
-
-                        // decrypt private key if it is encrypted
-                        let decryptedPrivateKey;
-                        if (!privateKeyArmored.isDecrypted()) {
-                            decryptedPrivateKey = await openpgp.decryptKey({
-                                privateKeyArmored,
-                                passphrase
-                            });
-                        } else {
-                            // Use the private key as is if it is already decrypted
-                            decryptedPrivateKey = privateKeyArmored;
-                        }
-
-                        const message = await openpgp.readMessage({
-                            armoredMessage: emailData
-                        });
-
-                        const { data: decrypted } = await openpgp.decrypt({
-                            message,
-                            decryptionKeys: decryptedPrivateKey
-
-                        });
-
-                        emailData = decrypted; // Use the decrypted data
-                        console.log('Email decrypted successfully. Parse the decrypted mail.');
-
-                        simpleParser(emailData, opt, async (err, reparsed) => {
-                            if (err) throw err;
-                            parsed = reparsed;
-                        });
-                    } catch (error) {
-                        console.error('Failed to decrypt email:', error);
-                        let err = new Error('Failed to decrypt email.');
-                        err.responseCode = 500;
-                        return callback(err);
-                    }
-                } else {
-                    console.log('Email is not encrypted');
-                }
-
+ 
                 //search for attachment
                 console.log('Message parsed');
                 if (parsed.attachments) {
