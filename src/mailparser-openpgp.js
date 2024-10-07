@@ -67,7 +67,7 @@ export default function openpgpMailDecrypt(data, options, callback) {
                 newEmailData += `${key}: ${value}\r\n`;
             }
         }
-        newEmailData += `\r\n${decryptedMail}`;
+        newEmailData += decryptedMail;
 
         console.log(newEmailData);
 
