@@ -6,7 +6,9 @@
     "nodemailer": "^6.9.15",
     "nodemailer-openpgp": "^2.2.1",
     "openpgp": "^5.11.2",
+    "sequelize": "^6.37.4",
     "smtp-server": "^3.13.5",
+    "sqlite3": "^5.1.7",
     "zbase32": "^2.0.3"
   },
   "devDependencies": {

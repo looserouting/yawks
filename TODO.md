@@ -1,3 +1,13 @@
+# read initdb file to create database if database does not exist
+
+# can I user http for wkd? this way i don't need certificates for "foreign" domains
+
+# Search for key on website
+
+# function as a key server
+have to check the documentation how this works
+keyserver.defaultDomain 
+
 # revoke key
 
 ## steps for revoking
