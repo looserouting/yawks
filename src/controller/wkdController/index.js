@@ -1,7 +1,9 @@
-import config from '../config.js';
 import path from 'path';
+import ConfigLoader from './configLoader.js';
 
-export function getpublicKey(req, res) {
+const config = ConfigLoader.loadConfig();
+
+function getpublicKey(req, res) {
     console.log('Key search request');
     console.log(`Hostname: ${req.hostname}`);
     console.log(`Hash: ${req.params.hash}`);
@@ -19,7 +21,7 @@ export function getpublicKey(req, res) {
         }
     });
 }
-export function getSubmissionAddress(req, res) {
+function getSubmissionAddress(req, res) {
     console.log(`Request for (${req.params.file})`);
 
     const fileName = path.join(config.dataDir, req.params.domain, 'submission-address');
@@ -34,7 +36,7 @@ export function getSubmissionAddress(req, res) {
     });
 }
 
-export function getPolicy(req, res) {
+function getPolicy(req, res) {
     console.log('Request for policy');
 
     const fileName = path.join(config.dataDir, req.params.domain, 'policy');
@@ -48,3 +50,9 @@ export function getPolicy(req, res) {
         }
     });
 };
+
+export default {
+    getpublicKey,
+    getSubmissionAddress,
+    getPolicy
+}

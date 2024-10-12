@@ -1,16 +1,18 @@
 // wksController.js
 import fs from 'node:fs';
-import config from '../config.js';
 import path from 'path';
+import ConfigLoader from './configLoader.js';
+
+const config = ConfigLoader.loadConfig();
 
 // Function to check submited key and send verification mail
 // This is called within the stmp service
-export function submitVerificationMail(req, res) {
-    // TODO Inster Code here
+function submitVerificationMail(req, res) {
+    // TODO Insert Code here
 };
 
 // Function to handle key validation
-export async function publishKey(req, res) {
+async function publishKey(req, res) {
     const { token } = req.params;
     const tokenFilePath = `${config.datadir}/requests/${token}`;
 
@@ -48,3 +50,8 @@ export async function publishKey(req, res) {
         }
     }
 };
+
+export default {
+    publishKey,
+    submitVerificationMail
+}

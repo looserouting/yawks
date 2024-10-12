@@ -1,8 +1,9 @@
 import fs from 'node:fs';
 import path from 'path';
-import config from '../config.js';
+import ConfigLoader from './configLoader.js';
 import { exit } from 'node:process';
 
+const config = ConfigLoader.loadConfig();
 
 async function checkFilesExist() {
     const filesToCheck = [

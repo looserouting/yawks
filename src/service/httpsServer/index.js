@@ -3,8 +3,9 @@ import fs from 'node:fs';
 import https from 'https';
 import tls from 'node:tls';
 import express from 'express';
-import config from '../config.js';
+import ConfigLoader from './configLoader.js';
 
+const config = ConfigLoader.loadConfig();
 const app = express();
 
 const options = {

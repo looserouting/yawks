@@ -1,12 +1,13 @@
 import fs from 'node:fs';
 import { SMTPServer } from "smtp-server";
-import config from '../config.js';
+import ConfigLoader from './configLoader.js';
 import openpgpMailDecrypt from '../controller/wksController/lib/mailparser-openpgp.js';
 import { openpgpEncrypt } from 'nodemailer-openpgp';
 import nodemailer from 'nodemailer';
 import crypto from 'crypto';
 import { createWkdHash, saveValidationData, getValidKey } from '../utils.js'; // Assuming these functions are moved to a utils file
 
+const config = ConfigLoader.loadConfig();
 const allowedDomains = new Set(Object.keys(config.domains));
 
 const transporter = config.smtp.sendmail ? nodemailer.createTransport({
