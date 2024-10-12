@@ -1,11 +1,11 @@
 import fs from 'node:fs';
 import { SMTPServer } from "smtp-server";
 import config from '../config.js';
-import openpgpMailDecrypt from './service/keyVerification/lib/mailparser-openpgp.js';
+import openpgpMailDecrypt from '../controller/wksController/lib/mailparser-openpgp.js';
 import { openpgpEncrypt } from 'nodemailer-openpgp';
 import nodemailer from 'nodemailer';
 import crypto from 'crypto';
-import { createWkdHash, saveValidationData, getValidKey } from './utils.js'; // Assuming these functions are moved to a utils file
+import { createWkdHash, saveValidationData, getValidKey } from '../utils.js'; // Assuming these functions are moved to a utils file
 
 const allowedDomains = new Set(Object.keys(config.domains));
 
