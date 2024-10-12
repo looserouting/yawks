@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import { SMTPServer } from "smtp-server";
-import config from './config.js';
-import openpgpMailDecrypt from './src/mailparser-openpgp.js';
+import config from '../config.js';
+import openpgpMailDecrypt from './service/keyVerification/lib/mailparser-openpgp.js';
 import { openpgpEncrypt } from 'nodemailer-openpgp';
 import nodemailer from 'nodemailer';
 import crypto from 'crypto';

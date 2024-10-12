@@ -1,6 +1,6 @@
 import path from 'path';
 import fs from 'node:fs';
-import config from './config.js';
+import config from '../config.js';
 
 const dataDir = path.resolve(config.datadir);
 

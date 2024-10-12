@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import https from 'https';
 import tls from 'node:tls';
 import express from 'express';
-import config from './config.js';
+import config from '../config.js';
 
 const app = express();
 
