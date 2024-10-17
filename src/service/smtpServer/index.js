@@ -1,26 +1,29 @@
 import fs from 'node:fs';
 import { SMTPServer } from "smtp-server";
-import ConfigLoader from './configLoader.js';
-import openpgpMailDecrypt from '../controller/wksController/lib/mailparser-openpgp.js';
+import openpgpMailDecrypt from '../../controller/wksController/lib/mailparser-openpgp.js';
 import { openpgpEncrypt } from 'nodemailer-openpgp';
 import nodemailer from 'nodemailer';
 import crypto from 'crypto';
-import { createWkdHash, saveValidationData, getValidKey } from '../utils.js'; // Assuming these functions are moved to a utils file
+import { createWkdHash, saveValidationData, getValidKey } from './utils.js';
+import dotenv from 'dotenv';
+import { Wkd, Wks } from '../../model/index.js';
 
-const config = ConfigLoader.loadConfig();
-const allowedDomains = new Set(Object.keys(config.domains));
+dotenv.config();
 
-const transporter = config.smtp.sendmail ? nodemailer.createTransport({
+const domains = Wkd.findAll();
+const allowedDomains = new Set(Object.keys(domains));
+
+const transporter = (process.env.MAIL ==  'sendmail') ? nodemailer.createTransport({
     sendmail: true,
     newline: 'unix',
     path: '/usr/sbin/sendmail'
 }) : nodemailer.createTransport({
-    host: config.smtp.host,
-    port: config.smtp.port,
+    host: process.env.SMTP_HOST,
+    port: process.env.SMTP_PORT,
     secure: false,
     auth: {
-        user: config.smtp.auth,
-        pass: config.smtp.pass
+        user: process.env.SMTP_AUTH,
+        pass: process.env.SMTP_PASSWORD
     }
 });
 
@@ -28,8 +31,8 @@ const server = new SMTPServer({
     starttls: true,
     logger: true,
     authOptional: true,
-    key: fs.readFileSync(config.ServerDefaultKey),
-    cert: fs.readFileSync(config.ServerDefaultCert),
+    key: Wks.ServerDefaultKey,
+    cert: Wks.ServerDefaultCert,
 
     async onData(stream, session, callback) {
         let emailData = '';

@@ -1,7 +1,7 @@
 import {DataTypes} from 'sequelize';
 
-const defineDomain = (sequelize) => {
-    const Domain = sequelize.define('Domain',
+const defineWkd = (sequelize) => {
+    const Wkd = sequelize.define('Wkd',
     {
         name: {
             type: DataTypes.STRING,
@@ -14,10 +14,10 @@ const defineDomain = (sequelize) => {
             type: DataTypes.STRING,
         },
     });
-    return Domain;
+    return Wkd;
 };
 
-export default defineDomain;
+export default defineWkd;
 
 // TODO domain has Many Keys
 

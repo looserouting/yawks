@@ -1,12 +1,17 @@
-# read initdb file to create database if database does not exist
-
-# can I user http for wkd? this way i don't need certificates for "foreign" domains
+# read initdbconfig file to create database if database does not exist
 
 # Search for key on website
 
-# function as a key server
+# keyserver 
 have to check the documentation how this works
-keyserver.defaultDomain 
+keys.defaultDomain 
+// keyServer: When enabled the server will accept keys for all domain ans will create a directory for each domain
+// It will also create a subdomain keyserver.defaultDomain. 
+keyServer: false
+keyServerWebSearch: false
+// If you don't you a wildcard certificate you can enter here certificats an keys for this subdomain
+keyServerCert: null
+keyServerKey: null
 
 # revoke key
 
@@ -49,4 +54,3 @@ User needs to update their keys
 remove console.log()'s and write logs into file
 
 # check varify mail if reqest is signed
-

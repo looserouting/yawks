@@ -3,9 +3,7 @@ import path from 'path';
 import crypto from 'crypto';
 import zbase32 from 'zbase32';
 import openpgp from 'openpgp';
-import ConfigLoader from '../../configLoader';
 
-const config = ConfigLoader.loadConfig();
 
 export function createWkdHash(smtpFromLocalpart) {
     console.log(`Local part in SMTP: ${smtpFromLocalpart}`);

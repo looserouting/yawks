@@ -1,9 +1,6 @@
 // wksController.js
 import fs from 'node:fs';
 import path from 'path';
-import ConfigLoader from './configLoader.js';
-
-const config = ConfigLoader.loadConfig();
 
 // Function to check submited key and send verification mail
 // This is called within the stmp service

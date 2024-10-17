@@ -1,11 +1,7 @@
 import express from 'express';
-import mailServer from './src/service/smtpServer'
-import httpsServer from './src/service/httpsServer';
-import routes from './src/service/smtpServer/routes.js'; 
-import { initializeApp } from './src/init.js';
-
-// Call the initializeApp function to perform initial checks and setup
-await initializeApp();
+import mailServer from './src/service/smtpServer/index.js'
+import httpsServer from './src/service/httpsServer/index.js';
+import routes from './src/service/httpsServer/routes.js'; 
 
 mailServer.listen(25, () => console.log('SMTP server started'));
 

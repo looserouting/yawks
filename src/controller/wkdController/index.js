@@ -1,9 +1,7 @@
 import path from 'path';
-import ConfigLoader from './configLoader.js';
 
-const config = ConfigLoader.loadConfig();
 
-function getpublicKey(req, res) {
+function getPublicKey(req, res) {
     console.log('Key search request');
     console.log(`Hostname: ${req.hostname}`);
     console.log(`Hash: ${req.params.hash}`);
@@ -52,7 +50,7 @@ function getPolicy(req, res) {
 };
 
 export default {
-    getpublicKey,
+    getPublicKey,
     getSubmissionAddress,
     getPolicy
 }

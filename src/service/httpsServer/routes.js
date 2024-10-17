@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import wkdController from '../../controller/wkdController';
-import wksController from '../../controller/wksController';
+import wkdController from '../../controller/wkdController/index.js';
+import wksController from '../../controller/wksController/index.js';
 
 const router = Router();
 
