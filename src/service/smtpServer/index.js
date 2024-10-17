@@ -1,4 +1,3 @@
-import fs from 'node:fs';
 import { SMTPServer } from "smtp-server";
 import openpgpMailDecrypt from '../../controller/wksController/lib/mailparser-openpgp.js';
 import { openpgpEncrypt } from 'nodemailer-openpgp';
@@ -6,12 +5,13 @@ import nodemailer from 'nodemailer';
 import crypto from 'crypto';
 import { createWkdHash, saveValidationData, getValidKey } from './utils.js';
 import dotenv from 'dotenv';
-import { Wkd, Wks } from '../../model/index.js';
+import { sequelize } from '../../model/index.js';
+import process from 'process';
 
 dotenv.config();
 
-const domains = Wkd.findAll();
-const allowedDomains = new Set(Object.keys(domains));
+const domains = await sequelize.models.Wkd.findAll();
+const allowedDomains = new Set(domains.map(domain => domain.name));
 
 const transporter = (process.env.MAIL ==  'sendmail') ? nodemailer.createTransport({
     sendmail: true,
@@ -31,8 +31,8 @@ const server = new SMTPServer({
     starttls: true,
     logger: true,
     authOptional: true,
-    key: Wks.ServerDefaultKey,
-    cert: Wks.ServerDefaultCert,
+    key: (await sequelize.models.Wks.findAll({attributes: ['value'], where: {parameter: 'ServerDefaultKey'}}))[0]?.value,
+    cert: (await sequelize.models.Wks.findAll({attributes: ['value'], where: {parameter: 'ServerDefaultCert'}}))[0]?.value,
 
     async onData(stream, session, callback) {
         let emailData = '';
@@ -59,7 +59,11 @@ const server = new SMTPServer({
 
             console.log('Recipients: ' + session.envelope.rcptTo);
             for (const recipient of session.envelope.rcptTo) {
-                if (recipient.address !== config.smtp.mailaddress) {
+                const submissionAddress = (await sequelize.models.Wks.findAll({
+                    attributes: ['value'],
+                    where: {parameter: 'submissionAddress'}})
+                )[0]?.value;
+                if (recipient.address !== submissionAddress) {
                     console.log('Wrong recipient');
                     let err = new Error("Recipient not found.");
                     err.responseCode = 500;
@@ -68,8 +72,8 @@ const server = new SMTPServer({
             }
 
             const opt = {
-                privateKeyArmored: fs.readFileSync(config.pgpprivkey).toString(),
-                passphrase: config.pgpkeypass
+                privateKeyArmored: (await sequelize.models.Wks.findAll({attributes: ['value'], where: {parameter: 'pgpprivkey'}}))[0]?.value,
+                passphrase: (await sequelize.models.Wks.findAll({attributes: ['value'], where: {parameter: 'pgpkeypass'}}))[0]?.value
             };
 
             openpgpMailDecrypt(emailData, opt, async (err, parsed) => {
@@ -92,19 +96,20 @@ const server = new SMTPServer({
                 const token = crypto.randomBytes(16).toString('hex');
 
                 saveValidationData(smtpFromDomain, wdkHash, publicKeyArmored, callback);
-
-                const privateKeyArmored = fs.readFileSync(config.pgpprivkey, 'utf8');
-                const passphrase = config.pgpkeypass;
-
+                
+                const defaultDomain= (await sequelize.models.Wks.findAll({
+                    attributes: ['value'],
+                    where: {parameter: 'defaultDomain'}})
+                )[0]?.value;
                 const mailOptions = {
-                    from: config.smtp.mailaddress,
                     to: smtpFrom,
                     subject: 'Validation Required for Your OpenPGP Key',
-                    text: `Hello,\n\nPlease validate your OpenPGP key by clicking the following link:\n\nhttps://${config.wksDomain}/api/${token}\n\nThank you.`,
-                    html: `<p>Hello,</p><p>Please validate your OpenPGP key by clicking the following link:</p><a href="https://${config.wksDomain}/api/${token}">Validate Key</a><p>Thank you.</p>`,
+                    from: (await sequelize.models.Wks.findAll({where: {parameter: 'submissionAddress'}}))[0]?.value,
+                    text: `Hello,\n\nPlease validate your OpenPGP key by clicking the following link:\n\nhttps://${defaultDomain}/api/${token}\n\nThank you.`,
+                    html: `<p>Hello,</p><p>Please validate your OpenPGP key by clicking the following link:</p><a href="https://${defaultDomain}/api/${token}">Validate Key</a><p>Thank you.</p>`,
                 };
 
-                transporter.use('stream', openpgpEncrypt({ signingKey: privateKeyArmored, passphrase: passphrase }));
+                transporter.use('stream', openpgpEncrypt(opt));
                 transporter.sendMail(mailOptions, (error, info) => {
                     if (error) {
                         console.log('Error sending email:', error);
