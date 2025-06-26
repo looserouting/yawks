@@ -65,6 +65,52 @@ remove console.log()'s and write logs into file
 
 # check varify mail if reqest is signed
 
+# missing
+## ✅ Im RFC spezifiziert und in yawks nur teulweise implementiert
+### Advanced Discovery
+```GET https://openpgpkey.<domain>/.well‑known/openpgpkey/<domain>/hu/<hash>?l=<uid>```
+Ermöglicht Clients Key-Abfrage über Subdomain.
+In der Router steht nichts von `?l=<uid>`
+
+### Direct Discovery
+```GET https://<domain>/.well‑known/openpgpkey/hu/<hash>?l=<uid>```
+Direct Discovery ist ein Fallback-Methode, wenn Advanced nicht verfügbar ist.
+Das berührt uns nicht.
+
+### Key Retrieval (GET)
+Liefert den binären OpenPGP-Schlüssel (application/octet-stream) 
+yawks deckt GET-Aufrufe ab und liefert den Schlüssel direkt aus dem Speicher.
+
+### HTTP HEAD Support
+Clients dürfen vorher HEAD absetzen, um Existenz zu prüfen 
+yawks unterstützt standardmäßig HEAD-Anfragen, da es Node/Express nutzt (prüfen und korrigieren).
+
+### Policy Flags
+```GET /.well-known/openpgpkey/<domain>/hu/policy```
+Muss Policy-Datei mit JSON-Flags liefern 
+yawks includiert diese Datei (im Repo), die route fehlt
+
+## ⚠️ Im RFC spezifiziert, aber von yawks nicht oder ungenügend implementiert
+### HKPS Discovery (hkps Datei)
+```GET https://openpgpkey.<domain>/.well‑known/openpgpkey/<domain>/hkps```
+RFC beschreibt als optional für HKPS-Zertifikat-Service 
+Das kennen ich nicht
+yawks bietet diese Datei nicht – kein HKPS redirect-Service.
+
+### Content-Type Richtlinien
+Soll application/octet-stream liefern (kein ASCII-Armoring) 
+yawks liefert Key im Binärformat, aber es fehlt:
+Eindeutiger Content-Type (evtl verwendet application/pgp-keys).
+CORS-Header (Access-Control-Allow-Origin) wird nicht gesetzt – wichtig für Browser-/Web-Clients 
+```
+Content-Type: application/octet-stream
+Access-Control-Allow-Origin: *
+```
+
+### Verarbeitung mehrerer User IDs
+RFC verlangt, dass nur User ID für Anfrage-Adresse ausgeliefert wird 
+yawks speichert ganze Keys — es fehlt Filterung, um unerwünschte IDs zu entfernen.
+
 
 # More suggestions
 ## 1. CORS-Header (Access-Control-Allow-Origin)
