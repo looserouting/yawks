@@ -4,14 +4,20 @@
 
 # keyserver 
 have to check the documentation how this works
-keys.defaultDomain 
-// keyServer: When enabled the server will accept keys for all domain ans will create a directory for each domain
+
+`keys.defaultDomain`
+
+`keyServer`: When enabled the server will accept keys for all domains. it will create a directory for each domain
 // It will also create a subdomain keyserver.defaultDomain. 
+```
 keyServer: false
 keyServerWebSearch: false
-// If you don't you a wildcard certificate you can enter here certificats an keys for this subdomain
+```
+// If you don't use you a wildcard certificate you can enter here certificats an keys for this subdomain
+```
 keyServerCert: null
 keyServerKey: null
+```
 
 # revoke key
 
