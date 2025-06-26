@@ -42,6 +42,10 @@ gpg --keyserver pgp.mit.edu --send-keys key-ID
 
 User needs to update their keys
 
+## possible solution
+Add user id of keyserver as revoker to the key and sign it
+The goal is that the server can revoke that key.
+
 # Make `gpg-wks-client create` work
 
 # Use database for storing keys and meta info
@@ -54,3 +58,52 @@ User needs to update their keys
 remove console.log()'s and write logs into file
 
 # check varify mail if reqest is signed
+
+
+# More suggestions
+## 1. CORS-Header (Access-Control-Allow-Origin)
+Der Draft erwähnt zwar keine CORS, aber moderne Browser‑Plugins und Web‑Clients scheitern häufig ohne Access-Control-Allow-Origin: * .
+Verbesserung: Den Server so konfigurieren, dass auf Policy‑ und Key-Responses stets Access-Control-Allow-Origin: * gesetzt wird.
+## 2. Advanced vs. Direct Discovery
+Der Draft empfiehlt zuerst "Advanced" (Subdomain openpgpkey.domain), dann bei 404 fallback auf "Direct" (ohne Subdomain).
+In der Realität fehlen oft Tests oder Warnungen bei Clients, die nur Direct nutzen .
+Optimierung:
+Logging & Monitoring, welches Verfahren greift.
+Tools oder Beispielskripte, um die Konfiguration zuverlässig zu prüfen.
+## 3. Policy Flags + Validator-Tooling
+Der Server muss eine Policy-Datei (/hu/policy) ausliefern.
+Aktuelle Tools (z. B. metacode’s WKD-Checker) testen neben Syntax auch CORS und HTTP-Status .
+Empfehlung: Aufnahme eines eigenen Validator-Skripts in yawks, das:
+policy validiert,
+200/HEAD-Status prüft,
+Content-Type und CORS testet,
+expired/revoked Keys erkennt.
+## 4. Post-Quantum & moderne Keyformate
+Laut Nutzerdiskussionen wird in Drafts bald PQ-Subkeys und Ed25519/Curve25519 als Pflicht eingeführt .
+Vorschlag: yawks um Unterstützung für moderne OpenPGP-Schlüsselformate erweitern:
+Bsplw. Erkennung und Auslieferung von EdDSA/ECDH/PQ‑Subkeys,
+Warnungen oder Logging bei RSA < 3072 Bit.
+## 5. Padding & Traffic Analysis
+Der Draft erwähnt Padding‑Pakete (Traffic‑Analysis-Schutz), aber Kritik weist auf covert-channel‑Problematik hin .
+Empfehlung: optional konfigurierbares Padding:
+Mit deterministischem (verifiable seed) oder
+Ohne (für auditfähig).
+Punktuelle Empfehlungen in Docs/Defaults.
+## 6 Tests, Monitoring & Logging
+Ergänzungen um:
+Unit-Tests für Hash-Generierung, URL-Encoding,
+Integrationstest mit echten WKD-Clients (z. B. GnuPG),
+Prometheus‑Metrics (Anfragen, Fehler, Latenz).
+
+Beispielübersicht
+Thema | Verbesserungsvorschlag |
+--- | --- |
+CORS |Access-Control-Allow-Origin: * hinzufügen
+HTTP HEAD | HEAD-Anfragen zuverlässig unterstützen
+Validator | Tool zur Prüfung SSL, Headers, Policy, Schlüssel
+Keyformate | PQ/EdDSA/ECDH Unterstützung & Warnung vor veraltetem RSA
+Padding | Optionales Padding mit Security-Optionen
+Tests & Monitoring | Automatisierte Tests & Prometheus-Metrics
+
+Fazit
+yawks ist ein starker Startpunkt für den WKD/Dienst gemäß IETF-Draft. Um ihn noch robuster und produktionsreif zu machen, lohnt es sich vor allem, CORS, Handling, Validator‑Tooling, sowie moderne Keyformate und Observability zu optimieren.
