@@ -11,6 +11,7 @@ router.get('/\.well-known/openpgpkey/:domain/hu/:hash', wkdController.getPublicK
 router.get('/\.well-known/openpgpkey/:domain/submission-address', wkdController.getSubmissionAddress);
 
 // WKS
+// User clicks on confirmation link 
 router.get('/api/:token', wksController.publishKey);
 
 // Keyserver

@@ -1,0 +1,57 @@
+Project OpenPGPKeyManagement {
+  database_type: 'PostgreSQL'
+  Note: 'Datenbankmodell für die Verwaltung von OpenPGP-Schlüsseln und zugehörigen Anfragen, wobei die E-Mail-Adresse als primärer Benutzer-Identifier dient.'
+}
+
+Table EmailAddresses {
+  email VARCHAR(255) [pk, not null] // Die E-Mail-Adresse ist jetzt der primäre Schlüssel
+  wkd_hash VARCHAR(64) [unique, not null]
+  created_at TIMESTAMP [default: `now()`]
+  updated_at TIMESTAMP [default: `now()`, on update: `now()`]
+  Note: 'Verwaltung der E-Mail-Adressen und des WKD-Hashes. Die E-Mail-Adresse dient hier als eindeutiger Benutzer-Identifier.'
+}
+
+Table OpenPGPKeys {
+  key_id UUID [pk, not null]
+  fingerprint VARCHAR(40) [unique, not null]
+  full_key_data TEXT [not null] // Oder BLOB, je nach DB-System und Präferenz
+  creation_time TIMESTAMP
+  expiration_time TIMESTAMP
+  key_type VARCHAR(50)
+  key_length INTEGER
+  created_at TIMESTAMP [default: `now()`]
+  updated_at TIMESTAMP [default: `now()`, on update: `now()`]
+  Note: 'Speichert die "rohen" OpenPGP-Schlüsseldaten und Metadaten.'
+}
+
+Table KeyVersions {
+  key_version_id UUID [pk, not null]
+  email VARCHAR(255) [not null, ref: > EmailAddresses.email] // Verweis auf die E-Mail-Adresse
+  key_id UUID [not null, ref: > OpenPGPKeys.key_id]
+  status VARCHAR(20) [not null, default: 'pending_activation',
+    check: "status IN ('active', 'pending_activation', 'archived', 'rejected')"]
+  is_primary BOOLEAN [default: false]
+  activation_date TIMESTAMP
+  deactivation_date TIMESTAMP
+  created_at TIMESTAMP [default: `now()`]
+  updated_at TIMESTAMP [default: `now()`, on update: `now()`]
+  Note: 'Verwaltung der verschiedenen Versionen eines Schlüssels für eine E-Mail-Adresse.'
+}
+
+Table Requests {
+  request_id UUID [pk, not null]
+  email VARCHAR(255) [ref: > EmailAddresses.email] // Verweis auf die E-Mail-Adresse
+  requested_key_id UUID [ref: > OpenPGPKeys.key_id]
+  request_type VARCHAR(20) [not null,
+    check: "request_type IN ('new_registration', 'key_update', 'key_deletion')"]
+  status VARCHAR(20) [not null, default: 'pending',
+    check: "status IN ('pending', 'approved', 'rejected', 'cancelled')"]
+  verification_token VARCHAR(255) [unique]
+  token_expiration TIMESTAMP
+  requester_ip VARCHAR(45)
+  notes TEXT
+  created_at TIMESTAMP [default: `now()`]
+  updated_at TIMESTAMP [default: `now()`, on update: `now()`]
+  processed_at TIMESTAMP
+  Note: 'Speichert Informationen zu Anfragen (Registrierung, Aktualisierung, Löschung von Schlüsseln).'
+}

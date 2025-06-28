@@ -1,7 +1,7 @@
 import { Sequelize } from 'sequelize';
 import config from '../config.js';
-import definePendingRequest from './pendingRequest.js';
-import defineKey from './key.js';
+import definePendingRequest from './request.js';
+import defineKey from './keys.js';
 import defineWkd from './wkd.js';
 import defineWks from './wks.js';
 import process from 'process';

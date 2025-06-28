@@ -1,35 +1,35 @@
 // wksController.js
 import fs from 'node:fs';
-import path from 'path';
-
-// Function to check submited key and send verification mail
-// This is called within the stmp service
-function submitVerificationMail(req, res) {
-    // TODO Insert Code here
-};
+import config from '../../config.js';
+import { sequelize } from '../../model/index.js';
 
 // Function to handle key validation
 async function publishKey(req, res) {
     const { token } = req.params;
-    const tokenFilePath = `${config.datadir}/requests/${token}`;
+    // TODO store request in Database (sequelize->pendingRequests)
+    const tokenFilePath = `${config.directory}/requests/${token}`;
 
     console.log("Validation completion initiated.");
     console.log(`Processing token: ${token}`);
 
     try {
-        // Step 1: Read token file
-        const data = await fs.promises.readFile(tokenFilePath, 'utf8');
-        const parsedData = JSON.parse(data);
+        // Step 1: Find token in pendingRequests table
+        const request = await sequelize.models.key.findOne({ where: { token } });
+        if (!request) {
+            return res.status(404).send("Hash not found in pendingRequests");
+        }
 
-        const { domain, wdkHash } = parsedData;
-        const sourcePath = path.join(config.datadir, domain, 'pending', wdkHash);
-        const destinationPath = path.join(config.datadir, domain, 'hu', wdkHash);
-
-        // Step 2: Move file from 'pending' to 'hu'
-        await fs.promises.rename(sourcePath, destinationPath);
-        console.log(`Key successfully moved from ${sourcePath} to ${destinationPath}`);
+        // Step 2: Insert into Database -> Keys Table
+        await sequelize.models.Key.create({
+            email: request.email, // Stelle sicher, dass parsedData.email existiert
+            wkdHash: request.token,
+            domain: request.domain,
+            key: keyContent,
+            status: 'published'
+        });
 
         // Step 3: Remove token file after processing
+        // TODO delete requestPending
         await fs.promises.unlink(tokenFilePath);
         console.log(`Token file removed: ${tokenFilePath}`);
 
@@ -49,6 +49,5 @@ async function publishKey(req, res) {
 };
 
 export default {
-    publishKey,
-    submitVerificationMail
+    publishKey
 }
