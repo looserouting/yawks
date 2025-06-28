@@ -5,7 +5,9 @@ import wksController from '../../controller/wksController/index.js';
 const router = Router();
 
 // WKD
+// eslint-disable-next-line no-useless-escape
 router.get('/\.well-known/openpgpkey/:domain/hu/:hash', wkdController.getPublicKey);
+// eslint-disable-next-line no-useless-escape
 router.get('/\.well-known/openpgpkey/:domain/submission-address', wkdController.getSubmissionAddress);
 
 // WKS

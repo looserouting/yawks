@@ -1,29 +1,26 @@
+import config from '../../config.js';
 import { SMTPServer } from "smtp-server";
 import openpgpMailDecrypt from '../../controller/wksController/lib/mailparser-openpgp.js';
 import { openpgpEncrypt } from 'nodemailer-openpgp';
 import nodemailer from 'nodemailer';
 import crypto from 'crypto';
 import { createWkdHash, saveValidationData, getValidKey } from './utils.js';
-import dotenv from 'dotenv';
 import { sequelize } from '../../model/index.js';
-import process from 'process';
-
-dotenv.config();
 
 const domains = await sequelize.models.Wkd.findAll();
 const allowedDomains = new Set(domains.map(domain => domain.name));
 
-const transporter = (process.env.MAIL ==  'sendmail') ? nodemailer.createTransport({
+const transporter = (config.mail ==  'sendmail') ? nodemailer.createTransport({
     sendmail: true,
     newline: 'unix',
     path: '/usr/sbin/sendmail'
 }) : nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: process.env.SMTP_PORT,
+    host: config.smtp_host,
+    port: config.smtp_port,
     secure: false,
     auth: {
-        user: process.env.SMTP_AUTH,
-        pass: process.env.SMTP_PASSWORD
+        user: config.smtp_authuser,
+        pass: config.smtp_authpass
     }
 });
 

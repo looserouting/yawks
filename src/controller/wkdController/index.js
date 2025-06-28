@@ -1,5 +1,5 @@
 import path from 'path';
-
+import config from '../../config.js';
 
 function getPublicKey(req, res) {
     console.log('Key search request');
@@ -8,7 +8,7 @@ function getPublicKey(req, res) {
     console.log(`Domain: ${req.params.domain}`);
     console.log(`Query: ${Object.entries(req.query)}`);
 
-    const fileName = path.join(config.dataDir, req.params.domain, 'hu', req.params.hash);
+    const fileName = path.join(config.directory, req.params.domain, 'hu', req.params.hash);
     
     res.sendFile(fileName, (err) => {
         if (err) {
@@ -22,7 +22,7 @@ function getPublicKey(req, res) {
 function getSubmissionAddress(req, res) {
     console.log(`Request for (${req.params.file})`);
 
-    const fileName = path.join(config.dataDir, req.params.domain, 'submission-address');
+    const fileName = path.join(config.directory, req.params.domain, 'submission-address');
 
     res.sendFile(fileName, (err) => {
         if (err) {
@@ -37,7 +37,7 @@ function getSubmissionAddress(req, res) {
 function getPolicy(req, res) {
     console.log('Request for policy');
 
-    const fileName = path.join(config.dataDir, req.params.domain, 'policy');
+    const fileName = path.join(config.directory, req.params.domain, 'policy');
 
     res.sendFile(fileName, (err) => {
         if (err) {

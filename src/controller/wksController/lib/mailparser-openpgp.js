@@ -1,5 +1,5 @@
 import { simpleParser } from 'mailparser';
-import openpgp from 'openpgp';
+import * as openpgp from 'openpgp';
 
 export default function openpgpMailDecrypt(data, options, callback) {
 

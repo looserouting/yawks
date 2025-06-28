@@ -2,7 +2,8 @@ import fs from 'node:fs';
 import path from 'path';
 import crypto from 'crypto';
 import zbase32 from 'zbase32';
-import openpgp from 'openpgp';
+import * as openpgp from 'openpgp';
+import config from '../../config.js';
 
 
 export function createWkdHash(smtpFromLocalpart) {
