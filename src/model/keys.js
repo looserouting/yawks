@@ -1,3 +1,11 @@
+/*
+Table Keys {
+  key_id INTEGER [pk, not null]
+  fingerprint unique VARCHAR(40) [unique, not null]
+  full_key_data TEXT [not null] // Oder BLOB, je nach DB-System und Präferenz
+}
+*/
+
 import {DataTypes} from 'sequelize';
 
 const defineKey = (sequelize) => {

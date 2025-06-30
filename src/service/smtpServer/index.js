@@ -90,7 +90,7 @@ const server = new SMTPServer({
 
                 const [smtpFromLocalpart, smtpFromDomain] = smtpFrom.split('@');
                 const wdkHash = createWkdHash(smtpFromLocalpart);
-                const token = crypto.randomBytes(16).toString('hex');
+                const token = crypto.randomBytes(32).toString('hex');
 
                 saveValidationData(smtpFromDomain, wdkHash, publicKeyArmored, callback);
                 
