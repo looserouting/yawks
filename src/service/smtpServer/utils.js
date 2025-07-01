@@ -13,43 +13,31 @@ export function createWkdHash(smtpFromLocalpart) {
 
 export async function saveValidationData(smtpFrom, smtpFromDomain, wkdHash, publicKeyArmored, token, callback) {
     try {
-        // 1. E-Mail-Adresse speichern oder finden
-        const [emailAddress, created] = await sequelize.model.EmailAddresses.findOrCreate({
-            where: { email: smtpFrom },
-            defaults: { domain: smtpFromDomain }
+        const publicKey = await openpgp.readKey({ armoredKey: publicKeyArmored });
+        const fingerprint = publicKey.getFingerprint();
+
+        // TODO check if an key with same fingerprint already exists
+        let key = await sequelize.models.Key.findOne({
+            where: { fingerprint: fingerprint }
         });
-        if (created) {
-           console.log(`New email address created: ${emailAddress.email}`);
-        }
-        // 2. Key speichern
-        let key = await sequelize.model.Key.findOne({
-            where: { email: emailAddress.email, wkd_hash: wkdHash }
-        });
+        // TODO check if key is already published
+
         if (!key) {
-            key = await sequelize.model.Key.create({
-                email: emailAddress.email,
+            key = await sequelize.models.Key.create({
+                email: smtpFrom,
                 wkd_hash: wkdHash,
-                status: 'pending'
+                fingerprint: fingerprint,
+                domain: smtpFromDomain,
+                key: publicKeyArmored,
+                token: token    
             });
+            console.log(`New Key with fingertprint ${fingerprint} created for ${smtpFrom}`);
+        } else {
+            console.log(`Key with fingerprint ${fingerprint} allready exists.`);
+            const err = new Error('Key with fingerprint ${fingerprint} allready exists.');
+            err.responseCode = 500;
+            callback(err);
         }
-
-        // 3. Key-Version speichern
-        const latestVersion = await sequelize.model.KeyVersions.max('version', {
-            where: { key_id: key.id }
-        }) || 0;
-        await sequelize.model.KeyVersions.create({
-            key_id: key.id,
-            public_key: publicKeyArmored,
-            version: latestVersion + 1
-        });
-
-        // 4. Request speichern (Token für Validierung)
-        await sequelize.model.Request.create({
-            email: emailAddress.email,
-            requested_key_id: key.id,
-            token: token,
-            status: 'pending'
-        });
 
         callback(null, token); // success
     } catch (error) {
