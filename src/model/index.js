@@ -1,42 +1,58 @@
 import { Sequelize } from 'sequelize';
 import config from '../config.js';
-import definePendingRequest from './request.js';
 import defineKey from './keys.js';
-import defineWkd from './wkd.js';
-import defineWks from './wks.js';
+import defineKeyVersions from './keyVersions.js';
+import defineEmailAddresses from './EmailAddresses.js';
+import defineRequest from './request.js';
 import process from 'process';
-
-// Funktion zum Initialisieren der Datenbank
-async function initializeDatabase() {
-  try {
-      // Synchronisieren der Modelle mit der Datenbank (Tabellen erstellen, falls nicht vorhanden)
-      await sequelize.authenticate();  // Verbindungsprüfung
-      console.log('Verbindung erfolgreich hergestellt.');
-      
-      await sequelize.sync({ force: false });  // Erstellt Tabellen, falls sie nicht existieren
-      console.log('Tabellen erfolgreich erstellt oder synchronisiert.');
-    
-  } catch (err) {
-      console.error('Fehler beim Initialisieren der Datenbank:', err);
-      process.exit();
-  }
-}
 
 // Initialize Sequelize (you can replace the SQLite connection with your actual database)
 export const sequelize = new Sequelize(config.database_uri);
 
 // Initialize models
-defineWks(sequelize);
-defineWkd(sequelize);
+const EmailAddresses = defineEmailAddresses(sequelize);
 const Key = defineKey(sequelize);
+const KeyVersions = defineKeyVersions(sequelize);
+const Request = defineRequest(sequelize);
 
-const pendingRequest = definePendingRequest(sequelize);
-pendingRequest.belongsTo(Key, {
-  foreignKey: 'email',  // Foreign key column in pendingRequest
-  as: 'key'             // Alias for the relationship
+// Define relationships
+Key.belongsTo(EmailAddresses, {
+  foreignKey: 'email',
+  as: 'emailAddress'
 });
+
+KeyVersions.belongsTo(Key, {
+  foreignKey: 'key_id',
+  as: 'key'
+});
+
+Request.belongsTo(Key, {
+  foreignKey: 'requested_key_id',
+  as: 'requestedKey'
+});
+
+Request.belongsTo(EmailAddresses, {
+  foreignKey: 'email',
+  as: 'requestedKey'
+});
+
+
+// Function to initialize the database
+async function initializeDatabase() {
+  try {
+    // Authenticate and sync models with the database
+    await sequelize.authenticate();
+    console.log('Connection established successfully.');
+
+    await sequelize.sync({ force: false });
+    console.log('Tables created or synchronized successfully.');
+  } catch (err) {
+    console.error('Error initializing the database:', err);
+    process.exit();
+  }
+}
 
 await initializeDatabase();
 
-// sequelize
+// Export sequelize
 export default sequelize;
