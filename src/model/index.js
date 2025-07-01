@@ -33,7 +33,7 @@ Request.belongsTo(Key, {
 
 Request.belongsTo(EmailAddresses, {
   foreignKey: 'email',
-  as: 'requestedKey'
+  as: 'requesterEmail'
 });
 
 
