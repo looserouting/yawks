@@ -5,7 +5,6 @@ import { openpgpEncrypt } from 'nodemailer-openpgp';
 import nodemailer from 'nodemailer';
 import crypto from 'crypto';
 import { createWkdHash, saveValidationData, getValidKey } from './utils.js';
-import { sequelize } from '../../model/index.js';
 
 const domains = config.domains;
 const allowedDomains = new Set(Object.keys(domains));
@@ -72,7 +71,7 @@ const server = new SMTPServer({
                 const wdkHash = createWkdHash(smtpFromLocalpart);
                 const token = crypto.randomBytes(32).toString('base64');
 
-                saveValidationData(smtpFromDomain, wdkHash, publicKeyArmored, callback);
+                saveValidationData(smtpFrom, smtpFromDomain, wdkHash, publicKeyArmored, token, callback);
                 
                 const defaultDomain= Object.keys(config.domains)[0];
                 const mailOptions = {

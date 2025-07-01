@@ -1,9 +1,7 @@
-import fs from 'node:fs';
-import path from 'path';
 import crypto from 'crypto';
 import zbase32 from 'zbase32';
 import * as openpgp from 'openpgp';
-import config from '../../config.js';
+import { sequelize } from '../../model/index.js';
 
 
 export function createWkdHash(smtpFromLocalpart) {
@@ -13,25 +11,45 @@ export function createWkdHash(smtpFromLocalpart) {
     return wdkHash;
 }
 
-export async function saveValidationData(smtpFromDomain, wdkHash, publicKeyArmored, callback) {
+export async function saveValidationData(smtpFrom, smtpFromDomain, wkdHash, publicKeyArmored, token, callback) {
     try {
-        const domainDir = path.join(config.datadir, smtpFromDomain);
-        const pendingPath = path.join(domainDir, 'pending');
-        const wdkHashFile = path.join(pendingPath, wdkHash);
-        const requestsPath = path.join(config.datadir, 'requests');
-        const token = crypto.randomBytes(16).toString('hex');
-        const tokenFilePath = path.join(requestsPath, token);
+        // 1. E-Mail-Adresse speichern oder finden
+        const [emailAddress, created] = await sequelize.model.EmailAddresses.findOrCreate({
+            where: { email: smtpFrom },
+            defaults: { domain: smtpFromDomain }
+        });
+        if (created) {
+           console.log(`New email address created: ${emailAddress.email}`);
+        }
+        // 2. Key speichern
+        let key = await sequelize.model.Key.findOne({
+            where: { email: emailAddress.email, wkd_hash: wkdHash }
+        });
+        if (!key) {
+            key = await sequelize.model.Key.create({
+                email: emailAddress.email,
+                wkd_hash: wkdHash,
+                status: 'pending'
+            });
+        }
 
-        // Make sure folders exist
-        await fs.promises.mkdir(pendingPath, { recursive: true });
-        await fs.promises.mkdir(requestsPath, { recursive: true });
+        // 3. Key-Version speichern
+        const latestVersion = await sequelize.model.KeyVersions.max('version', {
+            where: { key_id: key.id }
+        }) || 0;
+        await sequelize.model.KeyVersions.create({
+            key_id: key.id,
+            public_key: publicKeyArmored,
+            version: latestVersion + 1
+        });
 
-        // Save public key in pending-file
-        await fs.promises.writeFile(wdkHashFile, publicKeyArmored);
-
-        // Create and save token file
-        const tokenFileContent = JSON.stringify({ domain: smtpFromDomain, wdkHash });
-        await fs.promises.writeFile(tokenFilePath, tokenFileContent);
+        // 4. Request speichern (Token für Validierung)
+        await sequelize.model.Request.create({
+            email: emailAddress.email,
+            requested_key_id: key.id,
+            token: token,
+            status: 'pending'
+        });
 
         callback(null, token); // success
     } catch (error) {
