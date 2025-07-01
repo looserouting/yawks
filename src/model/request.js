@@ -39,13 +39,6 @@ const defineRequest = (sequelize) => {
       allowNull: true,
       // Fremdschlüssel zu Keys.id (Association separat)
     },
-    request_type: {
-      type: DataTypes.STRING(20),
-      allowNull: false,
-      validate: {
-        isIn: [['new_registration', 'key_update', 'key_deletion']],
-      },
-    },
     status: {
       type: DataTypes.STRING(20),
       allowNull: false,
@@ -64,8 +57,7 @@ const defineRequest = (sequelize) => {
       allowNull: true,
     },
   }, {
-    tableName: 'Requests',
-    timestamps: false,
+    tableName: 'Requests'
   });
 
   return Request;

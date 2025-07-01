@@ -58,7 +58,6 @@ const defineKeyVersions = (sequelize) => {
     },
   }, {
     tableName: 'KeyVersions',
-    timestamps: false,
     // Optionally, add model-level check constraint if your DB supports it:
     // hooks: {
     //   beforeValidate: (instance) => {

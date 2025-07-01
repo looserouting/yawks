@@ -1,10 +1,12 @@
 import config from '../../config.js';
+import openpgpMailDecrypt from './mailparser-openpgp.js';
+import { createWkdHash, saveValidationData, getValidKey } from './utils.js';
+
 import { SMTPServer } from "smtp-server";
-import openpgpMailDecrypt from '../../controller/wksController/lib/mailparser-openpgp.js';
 import { openpgpEncrypt } from 'nodemailer-openpgp';
 import nodemailer from 'nodemailer';
 import crypto from 'crypto';
-import { createWkdHash, saveValidationData, getValidKey } from './utils.js';
+
 
 const domains = config.domains;
 const allowedDomains = new Set(Object.keys(domains));
