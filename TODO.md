@@ -1,7 +1,7 @@
-# Search for key on website
+# 1. Search for key on website
 
-# revoke key
-## steps for revoking
+# 2. revoke key
+## 2.1. steps for revoking
 The following assumes that the key server is pgp.mit.edu.
 
 List keys
@@ -20,15 +20,110 @@ Send the revoked key to the key-server
 ```
 gpg --keyserver pgp.mit.edu --send-keys key-ID
 ```
-## Problem
+## 2.2. Problem
 User needs to update their keys
-# create openPGP Key in website and submit direcly using web api
+# 3. create openPGP Key in website and submit a request direcly using web api
 When unsing the Webinterface to create a Key, we could add our user as revoker
-# Make `gpg-wks-client create` work
-# Better error handling
+Example code:
+```
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>PGP Schlüsselgenerator mit Revoker</title>
+  https://unpkg.com/openpgp@latest/dist/openpgp.min.js
+</head>
+<body>
+  <h2>OpenPGP-Schlüssel generieren</h2>
+  <form id="pgpForm">
+    <label for="email">E-Mail-Adresse:</label>
+    <input type="email" id="email" required><br><br>
+
+    <label for="passphrase">Passwort für privaten Schlüssel:</label>
+    <input type="password" id="passphrase" required><br><br>
+
+    <button type="submit">Schlüssel generieren</button>
+  </form>
+
+  <script>
+    const dummyServerPublicKeyArmored = `-----BEGIN PGP PUBLIC KEY BLOCK-----
+Version: OpenPGP.js FAKE
+
+mQENBFzvKZUBCAC3ZJZKXvKZKXvKZKXvKZKXvKZKXvKZKXvKZKXvKZKXvKZKXvKZK
+XvKZKXvKZKXvKZKXvKZKXvKZKXvKZKXvKZKXvKZKXvKZKXvKZKXvKZKXvKZKXvKZ
+=FAKE
+-----END PGP PUBLIC KEY BLOCK-----`;
+
+    document.getElementById('pgpForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      const email = document.getElementById('email').value;
+      const passphrase = document.getElementById('passphrase').value;
+
+      if (!passphrase || passphrase.length < 6) {
+        alert("Bitte gib ein sicheres Passwort mit mindestens 6 Zeichen ein.");
+        return;
+      }
+
+      // Lade Server-Schlüssel
+      const serverKey = await openpgp.readKey({ armoredKey: dummyServerPublicKeyArmored });
+      const serverKeyID = serverKey.getKeyIDs()[0];
+
+      // Generiere Benutzerschlüssel (ohne User ID Signatur)
+      const { key } = await openpgp.generateKey({
+        type: 'rsa',
+        rsaBits: 2048,
+        userIDs: [{ email }],
+        passphrase: passphrase,
+        format: 'object',
+        config: { signUserIDs: false } // wir signieren gleich manuell
+      });
+
+      // Signiere User ID mit Revocation Key Subpacket
+      const user = key.getUserIDs()[0];
+      const primaryUser = await key.getPrimaryUser();
+
+      await key.signPrimaryUser([{
+        userID: primaryUser.user.userID,
+        key: key,
+        date: new Date(),
+        subpackets: {
+          revocationKey: [{
+            class: 0x80, // sensitive revoker
+            algorithm: serverKey.getAlgorithmInfo().algorithmID,
+            fingerprint: serverKey.getFingerprint()
+          }]
+        }
+      }]);
+
+      // Exportiere Schlüssel
+      const armoredPublicKey = await key.toPublic().armor();
+      const armoredPrivateKey = await key.armor();
+
+      // Download-Funktion
+      function download(filename, text) {
+        const element = document.createElement('a');
+        element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+        element.setAttribute('download', filename);
+        element.style.display = 'none';
+        document.body.appendChild(element);
+        element.click();
+        document.body.removeChild(element);
+      }
+
+      download('publicKey.asc', armoredKey);
+      download('privateKey.asc', armoredPrivateKey);
+    });
+  </script>
+</body>
+</html>
+```
+
+# 4. Make `gpg-wks-client create` work
+# 5. Better error handling
 remove console.log()'s and write logs into file
-# check/verify mail that reqest is signed
-# missing
+# 6. check/verify mail that reqest is signed
+# 7. missing
 ## ✅ Im RFC spezifiziert und in yawks nur teilweise implementiert
 ### Advanced Discovery
 ```GET https://openpgpkey.<domain>/.well‑known/openpgpkey/<domain>/hu/<hash>?l=<uid>```
