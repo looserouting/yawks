@@ -1,30 +1,30 @@
 import { Sequelize } from 'sequelize';
 import config from '../config.js';
-import defineKey from './keys.js';
+import defineKeys from './keys.js';
 import process from 'process';
 
-// Funktion zum Initialisieren der Datenbank
-async function initializeDatabase() {
-  try {
-      // Synchronisieren der Modelle mit der Datenbank (Tabellen erstellen, falls nicht vorhanden)
-      await sequelize.authenticate();  // Verbindungsprüfung
-      console.log('Verbindung erfolgreich hergestellt.');
-      
-      await sequelize.sync({ force: false });  // Erstellt Tabellen, falls sie nicht existieren
-      console.log('Tabellen erfolgreich erstellt oder synchronisiert.');
-    
-  } catch (err) {
-      console.error('Fehler beim Initialisieren der Datenbank:', err);
-      process.exit();
-  }
-}
-
+// Initialize Sequelize
 export const sequelize = new Sequelize(config.database_uri);
 
 // Initialize models
-defineKey(sequelize);
+defineKeys(sequelize);
+
+// Function to initialize the database
+async function initializeDatabase() {
+  try {
+    // Authenticate and sync models with the database
+    await sequelize.authenticate();
+    console.log('Connection established successfully.');
+
+    await sequelize.sync({ force: false });
+    console.log('Tables created or synchronized successfully.');
+  } catch (err) {
+    console.error('Error initializing the database:', err);
+    process.exit();
+  }
+}
 
 await initializeDatabase();
 
-// sequelize
+// Export sequelize
 export default sequelize;

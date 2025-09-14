@@ -1,6 +1,5 @@
 // httpsServer.js
 import config from '../../config.js';
-import fs from 'node:fs';
 import https from 'https';
 import tls from 'node:tls';
 import express from 'express';
@@ -12,12 +11,12 @@ app.use(routes)
 const options = {
     SNICallback: function (hostname, callback) {
 
-        let cert = fs.readFileSync(config.domains[Object.keys(config.domains)[0]].DomainCert);
-        let key = fs.readFileSync(config.domains[Object.keys(config.domains)[0]].DomainKey);
+        let cert = Object.keys(config.domains)[0].DomainCert;
+        let key = Object.keys(config.domains)[0].DomainKey;
 
         if (config.domains[hostname]) {
-            cert = fs.readFileSync(config.domains[hostname].DomainCert);
-            key = fs.readFileSync(config.domains[hostname].DomainKey);
+            cert = config.domains[hostname].DomainCert;
+            key = config.domains[hostname].DomainKey;
         }
 
         callback(null, tls.createSecureContext({

@@ -1,6 +1,8 @@
 import config from '../../config.js';
+import openpgpMailDecrypt from './mailparser-openpgp.js';
+import { createWkdHash, saveValidationData, getValidKey } from './utils.js';
+
 import { SMTPServer } from "smtp-server";
-import openpgpMailDecrypt from '../../controller/wksController/lib/mailparser-openpgp.js';
 import { openpgpEncrypt } from 'nodemailer-openpgp';
 import nodemailer from 'nodemailer';
 import crypto from 'crypto';
@@ -8,8 +10,8 @@ import { createWkdHash, saveValidationData, getValidKey } from './utils.js';
 import { sequelize } from '../../model/index.js';
 import fs from 'fs';
 
-const domains = await sequelize.models.Keys.findAll();
-const allowedDomains = new Set(domains.map(domain => domain.name));
+const domains = config.domains;
+const allowedDomains = new Set(Object.keys(domains));
 
 const transporter = (config.mail ==  'sendmail') ? nodemailer.createTransport({
     sendmail: true,
@@ -38,8 +40,8 @@ const server = new SMTPServer({
     starttls: true,
     logger: true,
     authOptional: true,
-    key: fs.readFileSync(config.smtp_key),
-    cert: fs.readFileSync(config.smtp_cert),
+    key:  Object.keys(domains)[0].DomainKey,
+    cert: Object.keys(domains)[0].DomainCert,
 
     async onData(stream, session, callback) {
         let emailData = '';
@@ -53,43 +55,23 @@ const server = new SMTPServer({
             const smtpFrom = session.envelope.mailFrom.address;
             const fromDomain = session.envelope.mailFrom.address.split('@').pop();
 
-            console.log('Reading data');
-            console.log(`SMTP From: ${smtpFrom}`);
-
-            if (allowedDomains.size > 0 && !allowedDomains.has(fromDomain)) {
-                console.log('Domain is not allowed');
-                let err = new Error(`Your domain ${fromDomain} is not allowed to send mails to this server`);
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(smtpFrom) || !emailRegex.test(`test@${fromDomain}`)) {
+                let err = new Error('Invalid email address format.');
                 err.responseCode = 500;
                 return callback(err);
             }
-            console.log(`Domain is allowed: ${fromDomain}`);
 
-            console.log('Recipients: ' + session.envelope.rcptTo);
-            for (const recipient of session.envelope.rcptTo) {
-                const submissionAddress = (await sequelize.models.Wks.findAll({
-                    attributes: ['value'],
-                    where: {parameter: 'submissionAddress'}})
-                )[0]?.value;
-                if (recipient.address !== submissionAddress) {
-                    console.log('Wrong recipient');
-                    let err = new Error("Recipient not found.");
-                    err.responseCode = 500;
-                    return callback(err);
-                }
-            }
+            if (!validateDomain(fromDomain, callback)) return;
+            if (!validateRecipients(session.envelope.rcptTo, callback)) return;
 
             const opt = {
-                privateKeyArmored: (await sequelize.models.Wks.findAll({attributes: ['value'], where: {parameter: 'pgpprivkey'}}))[0]?.value,
-                passphrase: (await sequelize.models.Wks.findAll({attributes: ['value'], where: {parameter: 'pgpkeypass'}}))[0]?.value
+                privateKeyArmored: config.domains[0].pgpprivkey,
+                passphrase: config.domains[0].pgpkeypass
             };
 
-            openpgpMailDecrypt(emailData, opt, async (err, parsed) => {
-                if (err) {
-                    console.log(err);
-                    let error = new Error('Could not parse the mail');
-                    error.responseCode = 500;
-                    return callback(error);
-                }
+            try {
+                const parsed = await openpgpMailDecrypt(emailData, opt);
                 console.log('Message parsed');
 
                 const publicKeyArmored = await getValidKey(parsed, smtpFrom);
@@ -100,18 +82,15 @@ const server = new SMTPServer({
 
                 const [smtpFromLocalpart, smtpFromDomain] = smtpFrom.split('@');
                 const wdkHash = createWkdHash(smtpFromLocalpart);
-                const token = crypto.randomBytes(32).toString('hex');
+                const token = crypto.randomBytes(32).toString('base64');
 
-                saveValidationData(smtpFromDomain, wdkHash, publicKeyArmored, callback);
+                saveValidationData(smtpFrom, smtpFromDomain, wdkHash, publicKeyArmored, token, callback);
                 
-                const defaultDomain= (await sequelize.models.Wks.findAll({
-                    attributes: ['value'],
-                    where: {parameter: 'defaultDomain'}})
-                )[0]?.value;
+                const defaultDomain= Object.keys(config.domains)[0];
                 const mailOptions = {
                     to: smtpFrom,
                     subject: 'Validation Required for Your OpenPGP Key',
-                    from: (await sequelize.models.Wks.findAll({where: {parameter: 'submissionAddress'}}))[0]?.value,
+                    from: config.smtp_mailaddress,
                     text: `Hello,\n\nPlease validate your OpenPGP key by clicking the following link:\n\nhttps://${defaultDomain}/api/${token}\n\nThank you.`,
                     html: `<p>Hello,</p><p>Please validate your OpenPGP key by clicking the following link:</p><a href="https://${defaultDomain}/api/${token}">Validate Key</a><p>Thank you.</p>`,
                 };
@@ -127,10 +106,42 @@ const server = new SMTPServer({
                     console.log('Validation email sent:', info.response);
                     return callback(null, "Message processed and validation email sent.");
                 });
-            });
+            } catch (err) {
+                console.log(err);
+                let error = new Error('Could not parse the mail');
+                error.responseCode = 500;
+                return callback(error);
+            }
         });
     }
 });
+
+function validateDomain(fromDomain, callback) {
+    if (allowedDomains.size > 0 && !allowedDomains.has(fromDomain)) {
+        console.log('Domain is not allowed');
+        let err = new Error(`Your domain ${fromDomain} is not allowed to send mails to this server`);
+        err.responseCode = 500;
+        callback(err);
+        return false;
+    }
+    console.log(`Domain is allowed: ${fromDomain}`);
+    return true;
+}
+
+function validateRecipients(recipients, callback) {
+    console.log('Recipients: ' + recipients);
+    for (const recipient of recipients) {
+        const submissionAddress = config.smtp_mailaddress;
+        if (recipient.address !== submissionAddress) {
+            console.log('Wrong recipient');
+            let err = new Error("Recipient not found.");
+            err.responseCode = 500;
+            callback(err);
+            return false;
+        }
+    }
+    return true;
+}
 
 server.on('error', (err) => {
     console.log("Error %s", err.message);

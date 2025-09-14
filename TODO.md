@@ -1,72 +1,130 @@
-# read initdbconfig file to create database if database does not exist
+# 1. Search for key on website
 
-# Search for key on website
-
-# keyserver 
-have to check the documentation how this works
-
-`keys.defaultDomain`
-
-`keyServer`: When enabled the server will accept keys for all domains. it will create a directory for each domain
-// It will also create a subdomain keyserver.defaultDomain. 
-```
-keyServer: false
-keyServerWebSearch: false
-```
-// If you don't use you a wildcard certificate you can enter here certificats an keys for this subdomain
-```
-keyServerCert: null
-keyServerKey: null
-```
-
-# revoke key
-
-## steps for revoking
-
+# 2. revoke key
+## 2.1. steps for revoking
 The following assumes that the key server is pgp.mit.edu.
 
 List keys
 ```
 gpg --list-keys
 ```
-
 Revoke your key
 ```
 gpg --output revoke.asc --gen-revoke key-ID
 ```
-
 Import revocation certificate into your keyring
 ```
 gpg --import revoke.asc
 ```
-
 Send the revoked key to the key-server
 ```
 gpg --keyserver pgp.mit.edu --send-keys key-ID
 ```
-## Problem
-
+## 2.2. Problem
 User needs to update their keys
+# 3. create openPGP Key in website and submit a request direcly using web api
+When unsing the Webinterface to create a Key, we could add our user as revoker
+Example code:
+```
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>PGP Schlüsselgenerator mit Revoker</title>
+  https://unpkg.com/openpgp@latest/dist/openpgp.min.js
+</head>
+<body>
+  <h2>OpenPGP-Schlüssel generieren</h2>
+  <form id="pgpForm">
+    <label for="email">E-Mail-Adresse:</label>
+    <input type="email" id="email" required><br><br>
 
-## possible solution
-Add user id of keyserver as revoker to the key and sign it
-The goal is that the server can revoke that key.
+    <label for="passphrase">Passwort für privaten Schlüssel:</label>
+    <input type="password" id="passphrase" required><br><br>
 
-# Make `gpg-wks-client create` work
+    <button type="submit">Schlüssel generieren</button>
+  </form>
 
-# Use database for storing keys and meta info
+  <script>
+    const dummyServerPublicKeyArmored = `-----BEGIN PGP PUBLIC KEY BLOCK-----
+Version: OpenPGP.js FAKE
 
-- maybe we could check for outdated keys and remove them
-- scalability
+mQENBFzvKZUBCAC3ZJZKXvKZKXvKZKXvKZKXvKZKXvKZKXvKZKXvKZKXvKZKXvKZK
+XvKZKXvKZKXvKZKXvKZKXvKZKXvKZKXvKZKXvKZKXvKZKXvKZKXvKZKXvKZKXvKZ
+=FAKE
+-----END PGP PUBLIC KEY BLOCK-----`;
 
-# Better error handling
+    document.getElementById('pgpForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
 
+      const email = document.getElementById('email').value;
+      const passphrase = document.getElementById('passphrase').value;
+
+      if (!passphrase || passphrase.length < 6) {
+        alert("Bitte gib ein sicheres Passwort mit mindestens 6 Zeichen ein.");
+        return;
+      }
+
+      // Lade Server-Schlüssel
+      const serverKey = await openpgp.readKey({ armoredKey: dummyServerPublicKeyArmored });
+      const serverKeyID = serverKey.getKeyIDs()[0];
+
+      // Generiere Benutzerschlüssel (ohne User ID Signatur)
+      const { key } = await openpgp.generateKey({
+        type: 'rsa',
+        rsaBits: 2048,
+        userIDs: [{ email }],
+        passphrase: passphrase,
+        format: 'object',
+        config: { signUserIDs: false } // wir signieren gleich manuell
+      });
+
+      // Signiere User ID mit Revocation Key Subpacket
+      const user = key.getUserIDs()[0];
+      const primaryUser = await key.getPrimaryUser();
+
+      await key.signPrimaryUser([{
+        userID: primaryUser.user.userID,
+        key: key,
+        date: new Date(),
+        subpackets: {
+          revocationKey: [{
+            class: 0x80, // sensitive revoker
+            algorithm: serverKey.getAlgorithmInfo().algorithmID,
+            fingerprint: serverKey.getFingerprint()
+          }]
+        }
+      }]);
+
+      // Exportiere Schlüssel
+      const armoredPublicKey = await key.toPublic().armor();
+      const armoredPrivateKey = await key.armor();
+
+      // Download-Funktion
+      function download(filename, text) {
+        const element = document.createElement('a');
+        element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+        element.setAttribute('download', filename);
+        element.style.display = 'none';
+        document.body.appendChild(element);
+        element.click();
+        document.body.removeChild(element);
+      }
+
+      download('publicKey.asc', armoredKey);
+      download('privateKey.asc', armoredPrivateKey);
+    });
+  </script>
+</body>
+</html>
+```
+
+# 4. Make `gpg-wks-client create` work
+# 5. Better error handling
 remove console.log()'s and write logs into file
-
-# check varify mail if reqest is signed
-
-# missing
-## ✅ Im RFC spezifiziert und in yawks nur teulweise implementiert
+# 6. check/verify mail that reqest is signed
+# 7. missing
+## ✅ Im RFC spezifiziert und in yawks nur teilweise implementiert
 ### Advanced Discovery
 ```GET https://openpgpkey.<domain>/.well‑known/openpgpkey/<domain>/hu/<hash>?l=<uid>```
 Ermöglicht Clients Key-Abfrage über Subdomain.

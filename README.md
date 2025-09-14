@@ -90,41 +90,33 @@ gpg --output /var/www/yaks/submission.key --armor \
 
 ## Configuration
 
-Rename `config.js.example` to `config.js` and modify the configuration to your needs.
+`config.js`:
 
 Your configuration file could look like this
 ```
-const config = {
-    datadir: "./",
-    ServerDefaultKey: "/etc/letsencrypt/live/openpgpkey.positron-it.de/privkey.pem",
-    ServerDefaultCert: "/etc/letsencrypt/live/openpgpkey.positron-it.de/cert.pem",
-    pgpprivkey: "./submission.key",
-    pgppubkey: "./positron-it.de/hu/54f6ry7x1qqtpor16txw5gdmdbbh6a73",
-    pgpkeypass: '',
-    smtp: {
-        sendmail: true,
-        mailaddress: "key-submission@positron-it.de",
-        port: 25,
-        host: '', 
-        auth: {
-            user: '',
-            pass: ''
+export default {
+    mail: 'sendmail',
+    smtp_mailaddress: 'key-submission@positron-it.de',
+    smtp_port: 25,
+    smtp_host: null,
+    smtp_authuser: null,
+    smtp_authpass: null,
+    directory: '/var/www/yawks/public',
+    domains: {
+        'openpgpkey.positron-it.de': {
+            DomainCert: '/etc/letsencrypt/live/openpgpkey.positron-it.de/cert.pem',
+            DomainKey: '/etc/letsencrypt/live/openpgpkey.positron-it.de/privkey.pem',
+            pgpprivkey: './submission.key',
+            pgppubkey: './positron-it.de/hu/54f6ry7x1qqtpor16txw5gdmdbbh6a73',
+            pgpkeypass: null
         }
     },
-    domains: {
-        "positron-it.de": {
-            cert: "/etc/letsencrypt/live/openpgpkey.positron-it.de/privkey.pem",
-            key:  "/etc/letsencrypt/live/openpgpkey.positron-it.de/cert.pem"
-        }
-    }
-};
-
-export default config;
+  database_uri: 'sqlite://db.sqlite'
+}
 ```
 
-<mark>The configuration part will be rewritten. It's really upgly. But for now it will do his job.</mark>
 
-If you set the `sendmail: true` in the `smtp` section then `host`, `port` and `auth` will be ignored.
+If you set the `sendmail: true` in the `smtp` section then `smtp_host`, `smtp_port` and `smtp_auth` will be ignored.
 
 The smtp server will only accept mails from known domains which are send to the `smtp.mailaddress`.
 

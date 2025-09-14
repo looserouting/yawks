@@ -1,10 +1,13 @@
 {
+  "name": "yawks",
+  "version": "0.2.0",
+  "author": "Paolo Compagnini <paolo.compagnini@gmail.com>",
   "type": "module",
   "dependencies": {
     "express": "^4.0.0",
     "mailparser": "^3.7.1",
     "nodemailer": "^7.0.0",
-    "nodemailer-openpgp": "^2.0.0",
+    "nodemailer-openpgp": "^2.2.1",
     "openpgp": "^6.0.0",
     "sequelize": "^6.37.4",
     "smtp-server": "^3.13.5",
@@ -13,6 +16,9 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",
+    "@types/mailparser": "^3.4.6",
+    "@types/nodemailer": "^6.4.17",
+    "@types/smtp-server": "^3.5.10",
     "eslint": "^9.0.0",
     "globals": "^16.0.0"
   }

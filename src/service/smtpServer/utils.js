@@ -1,9 +1,7 @@
-import fs from 'node:fs';
-import path from 'path';
 import crypto from 'crypto';
 import zbase32 from 'zbase32';
 import * as openpgp from 'openpgp';
-import config from '../../config.js';
+import { sequelize } from '../../model/index.js';
 
 
 export function createWkdHash(smtpFromLocalpart) {
@@ -13,25 +11,33 @@ export function createWkdHash(smtpFromLocalpart) {
     return wdkHash;
 }
 
-export async function saveValidationData(smtpFromDomain, wdkHash, publicKeyArmored, callback) {
+export async function saveValidationData(smtpFrom, smtpFromDomain, wkdHash, publicKeyArmored, token, callback) {
     try {
-        const domainDir = path.join(config.datadir, smtpFromDomain);
-        const pendingPath = path.join(domainDir, 'pending');
-        const wdkHashFile = path.join(pendingPath, wdkHash);
-        const requestsPath = path.join(config.datadir, 'requests');
-        const token = crypto.randomBytes(16).toString('hex');
-        const tokenFilePath = path.join(requestsPath, token);
+        const publicKey = await openpgp.readKey({ armoredKey: publicKeyArmored });
+        const fingerprint = publicKey.getFingerprint();
 
-        // Make sure folders exist
-        await fs.promises.mkdir(pendingPath, { recursive: true });
-        await fs.promises.mkdir(requestsPath, { recursive: true });
+        // TODO check if an key with same fingerprint already exists
+        let key = await sequelize.models.Key.findOne({
+            where: { fingerprint: fingerprint }
+        });
+        // TODO check if key is already published
 
-        // Save public key in pending-file
-        await fs.promises.writeFile(wdkHashFile, publicKeyArmored);
-
-        // Create and save token file
-        const tokenFileContent = JSON.stringify({ domain: smtpFromDomain, wdkHash });
-        await fs.promises.writeFile(tokenFilePath, tokenFileContent);
+        if (!key) {
+            key = await sequelize.models.Key.create({
+                email: smtpFrom,
+                wkd_hash: wkdHash,
+                fingerprint: fingerprint,
+                domain: smtpFromDomain,
+                key: publicKeyArmored,
+                token: token    
+            });
+            console.log(`New Key with fingertprint ${fingerprint} created for ${smtpFrom}`);
+        } else {
+            console.log(`Key with fingerprint ${fingerprint} allready exists.`);
+            const err = new Error('Key with fingerprint ${fingerprint} allready exists.');
+            err.responseCode = 500;
+            callback(err);
+        }
 
         callback(null, token); // success
     } catch (error) {
