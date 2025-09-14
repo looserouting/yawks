@@ -8,14 +8,15 @@ Table Keys {
 
 import {DataTypes} from 'sequelize';
 
-const defineKey = (sequelize) => {
-    const Key = sequelize.define('Key', 
+const defineKeys = (sequelize) => {
+    const Keys = sequelize.define('Keys', 
     {
         email: {
             type: DataTypes.STRING,
             allowNull: false,
         },
         wkdHash: {
+            primaryKey: true,
             type: DataTypes.STRING,
             allowNull: false
         },
@@ -23,7 +24,7 @@ const defineKey = (sequelize) => {
             type: DataTypes.STRING,
             allowNull: false
         },
-        key: {
+        publickey: {
             type: DataTypes.STRING,
             allowNull: false
         },
@@ -31,9 +32,18 @@ const defineKey = (sequelize) => {
             type: DataTypes.ENUM('pending','published'),
             allowNull: false
         },
+        fingerprint: {
+            type: DataTypes.STRING,
+            allowNull: false
+        },
+        keycreationtime: {
+            primaryKey: true,
+            type: DataTypes.DATE,
+            allowNull: false
+        },
     });
 
-    return Key;
+    return Keys;
 };
 
-export default defineKey;
+export default defineKeys;

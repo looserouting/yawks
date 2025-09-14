@@ -6,8 +6,9 @@ import nodemailer from 'nodemailer';
 import crypto from 'crypto';
 import { createWkdHash, saveValidationData, getValidKey } from './utils.js';
 import { sequelize } from '../../model/index.js';
+import fs from 'fs';
 
-const domains = await sequelize.models.Wkd.findAll();
+const domains = await sequelize.models.Keys.findAll();
 const allowedDomains = new Set(domains.map(domain => domain.name));
 
 const transporter = (config.mail ==  'sendmail') ? nodemailer.createTransport({
@@ -24,12 +25,21 @@ const transporter = (config.mail ==  'sendmail') ? nodemailer.createTransport({
     }
 });
 
+
+if (!fs.existsSync(config.smtp_key)) {
+    throw new Error(`SMTP key file not found: ${config.smtp_key}`);
+}
+
+if (!fs.existsSync(config.smtp_cert)) {
+    throw new Error(`SMTP cert file not found: ${config.smtp_cert}`);
+}
+
 const server = new SMTPServer({
     starttls: true,
     logger: true,
     authOptional: true,
-    key: (await sequelize.models.Wks.findAll({attributes: ['value'], where: {parameter: 'ServerDefaultKey'}}))[0]?.value,
-    cert: (await sequelize.models.Wks.findAll({attributes: ['value'], where: {parameter: 'ServerDefaultCert'}}))[0]?.value,
+    key: fs.readFileSync(config.smtp_key),
+    cert: fs.readFileSync(config.smtp_cert),
 
     async onData(stream, session, callback) {
         let emailData = '';

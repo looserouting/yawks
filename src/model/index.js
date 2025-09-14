@@ -1,9 +1,6 @@
 import { Sequelize } from 'sequelize';
 import config from '../config.js';
-import definePendingRequest from './request.js';
 import defineKey from './keys.js';
-import defineWkd from './wkd.js';
-import defineWks from './wks.js';
 import process from 'process';
 
 // Funktion zum Initialisieren der Datenbank
@@ -22,19 +19,10 @@ async function initializeDatabase() {
   }
 }
 
-// Initialize Sequelize (you can replace the SQLite connection with your actual database)
 export const sequelize = new Sequelize(config.database_uri);
 
 // Initialize models
-defineWks(sequelize);
-defineWkd(sequelize);
-const Key = defineKey(sequelize);
-
-const pendingRequest = definePendingRequest(sequelize);
-pendingRequest.belongsTo(Key, {
-  foreignKey: 'email',  // Foreign key column in pendingRequest
-  as: 'key'             // Alias for the relationship
-});
+defineKey(sequelize);
 
 await initializeDatabase();
 

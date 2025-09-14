@@ -5,6 +5,8 @@ export default {
     smtp_host: null,
     smtp_authuser: null,
     smtp_authpass: null,
+    smtp_cert: '/etc/letsencrypt/live/openpgpkey.positron-it.de/cert.pem',
+    smtp_key: '/etc/letsencrypt/live/openpgpkey.positron-it.de/privkey.pem',
     directory: '/var/www/yawks/public',
     domains: {
         'openpgpkey.positron-it.de': {
