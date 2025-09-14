@@ -1,13 +1,10 @@
 import config from '../../config.js';
 import openpgpMailDecrypt from './mailparser-openpgp.js';
 import { createWkdHash, saveValidationData, getValidKey } from './utils.js';
-
 import { SMTPServer } from "smtp-server";
 import { openpgpEncrypt } from 'nodemailer-openpgp';
 import nodemailer from 'nodemailer';
 import crypto from 'crypto';
-import { createWkdHash, saveValidationData, getValidKey } from './utils.js';
-import { sequelize } from '../../model/index.js';
 import fs from 'fs';
 
 const domains = config.domains;
