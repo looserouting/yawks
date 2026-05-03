@@ -4,4 +4,4 @@ package-lock.json
 node_modules
 db.sqlite
 submission.key
-submission.pub
+submission.key.pub
