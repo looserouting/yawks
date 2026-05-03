@@ -1,0 +1,20 @@
+[2026-05-03T17:50:46.067Z] [INFO] Submission key not found. Generating new key for key-submission@positron-it.de...
+[2026-05-03T17:50:46.079Z] [INFO] New submission private key saved to /home/paolo/Projekte/yawks/submission.key
+[2026-05-03T17:50:46.079Z] [INFO] New submission public key saved to /home/paolo/Projekte/yawks/submission.key.pub
+[2026-05-03T17:50:46.086Z] [INFO] IMAP client started
+[2026-05-03T17:50:46.086Z] [INFO] HTTPS server started on port 3000
+[2026-05-03T17:51:46.145Z] [ERROR] Error in IMAP check: getaddrinfo ENOTFOUND imap.example.com
+[2026-05-03T17:52:46.124Z] [ERROR] Error in IMAP check: getaddrinfo ENOTFOUND imap.example.com
+[2026-05-03T18:57:52.961Z] [INFO] Starting YAWKS Corporate Edition...
+[2026-05-03T18:57:52.962Z] [INFO] Submission key found at /home/paolo/Projekte/yawks/submission.key
+[2026-05-03T18:57:52.963Z] [INFO] HTTPS server started on port 3000
+[2026-05-03T19:01:00.717Z] [INFO] Starting YAWKS Corporate Edition...
+[2026-05-03T19:01:00.718Z] [INFO] Submission key found at /home/paolo/Projekte/yawks/submission.key
+[2026-05-03T19:01:00.719Z] [INFO] HTTPS server started on port 3000
+[2026-05-03T19:03:07.959Z] [INFO] Starting YAWKS Corporate Edition...
+[2026-05-03T19:03:07.960Z] [INFO] Submission key found at /home/paolo/Projekte/yawks/submission.key
+[2026-05-03T19:03:07.961Z] [INFO] HTTPS server started on port 3000
+[2026-05-03T19:09:38.212Z] [INFO] Starting YAWKS Corporate Edition...
+[2026-05-03T19:09:38.213Z] [INFO] Submission key found at /home/paolo/Projekte/yawks/submission.key
+[2026-05-03T19:09:38.214Z] [INFO] HTTPS server started on port 3000
+[2026-05-03T19:09:38.214Z] [INFO] Admin Dashboard: http://localhost:3000/?admin=true

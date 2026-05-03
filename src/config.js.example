@@ -1,31 +1,29 @@
 export default {
     // --- Mail Configuration (Outgoing Only) ---
     mail: 'sendmail', // 'sendmail' or 'smtp'
-    smtp_mailaddress: 'key-submission@positron-it.de',
+    smtp_mailaddress: 'key-submission@your.domain',
     
     // if mail = 'smtp'
-    smtp_host: 'smtp.example.com',
+    smtp_host: 'smtp.your.domain',
     smtp_port: 587,
     smtp_tls: true,
-    smtp_authuser: 'user@example.com',
+    smtp_authuser: 'user@your.domain',
     smtp_authpass: 'password',
 
     // --- Key Management ---
-    // Key used for signing validation emails and identifying the server
     submission_key_path: './submission.key',
     submission_key_passphrase: '', 
 
     // --- Domain & WKD ---
-    domains: ['positron-it.de'],
-    directory: './wkd_data', // Root directory for WKD files
+    domains: ['your.domain'],
+    directory: './wkd_data',
 
     // --- Corporate & Privacy ---
-    // The fingerprint authorized to revoke user keys
     corporate_revocation_fingerprint: '0000000000000000000000000000000000000000', 
     corporate_revocation_algorithm: 1, 
     enforce_revoker: true,
     
-    admin_api_key: 'admin-secret-123',
+    admin_api_key: 'change-this-secret',
     
     enable_padding: true,
     padding_block_size: 4096,

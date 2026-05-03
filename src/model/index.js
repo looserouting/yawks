@@ -7,7 +7,7 @@ import process from 'process';
 export const sequelize = new Sequelize(config.database_uri);
 
 // Initialize models
-defineKeys(sequelize);
+export const { Keys, Request } = defineKeys(sequelize);
 
 // Function to initialize the database
 async function initializeDatabase() {

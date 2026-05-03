@@ -3,187 +3,157 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OpenPGP Schlüssel Generator</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
-        .container {
-            background-color: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        h1 {
-            color: #333;
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        .form-group {
-            margin-bottom: 20px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-            color: #555;
-        }
-        input[type="text"],
-        input[type="email"],
-        input[type="password"] {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-size: 16px;
-            box-sizing: border-box;
-        }
-        button {
-            background-color: #007bff;
-            color: white;
-            padding: 12px 24px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-            width: 100%;
-        }
-        button:hover:not(:disabled) {
-            background-color: #0056b3;
-        }
-        button:disabled {
-            background-color: #ccc;
-            cursor: not-allowed;
-        }
-        .progress {
-            display: none;
-            text-align: center;
-            margin: 20px 0;
-        }
-        .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #007bff;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .results {
-            display: none;
-            margin-top: 30px;
-        }
-        .key-section {
-            margin-bottom: 20px;
-        }
-        .key-section h3 {
-            color: #333;
-            margin-bottom: 10px;
-        }
-        .key-textarea {
-            width: 100%;
-            height: 200px;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-family: monospace;
-            font-size: 12px;
-            resize: vertical;
-            background-color: #f8f9fa;
-        }
-        .download-btn {
-            background-color: #28a745;
-            margin-top: 10px;
-            width: auto;
-            padding: 8px 16px;
-            font-size: 14px;
-        }
-        .download-btn:hover:not(:disabled) {
-            background-color: #1e7e34;
-        }
-        .info-box {
-            background-color: #e7f3ff;
-            border: 1px solid #b3d9ff;
-            border-radius: 5px;
-            padding: 15px;
-            margin-bottom: 20px;
-        }
-        .info-box h3 {
-            margin-top: 0;
-            color: #0056b3;
-        }
-        .info-box ul {
-            margin-bottom: 0;
-        }
-    </style>
+    <title>YAWKS | Corporate PGP Manager</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="container">
-        <h1>OpenPGP Schlüssel Generator</h1>
-        
-        <div class="info-box">
-            <h3>Wichtige Hinweise:</h3>
-            <ul>
-                <li>Die Schlüsselerstellung erfolgt vollständig in Ihrem Browser - keine Daten werden an den Server gesendet.</li>
-                <li>Speichern Sie Ihren privaten Schlüssel sicher und erstellen Sie eine Sicherungskopie.</li>
-                <li>Der öffentliche Schlüssel kann frei geteilt werden.</li>
-                <li>Verwenden Sie eine sichere Passphrase für Ihren privaten Schlüssel.</li>
-            </ul>
+        <div class="card">
+            <h1>YAWKS</h1>
+            <p class="subtitle">Secure Corporate PGP Key Management</p>
+
+            <div class="info-banner">
+                <div style="font-size: 1.5rem">🛡️</div>
+                <p>
+                    <strong>Datenschutz-Garantie:</strong> Alle Operationen finden lokal in Ihrem Browser statt. 
+                    Ihr privater Schlüssel wird niemals an den Server übertragen.
+                </p>
+            </div>
+
+            <div class="tabs">
+                <button class="tab-btn active" id="tab-search" onclick="showTab('search')">Mitarbeiter Suche</button>
+                <button class="tab-btn" id="tab-generate" onclick="showTab('generate')">Neu Erstellen</button>
+                <button class="tab-btn" id="tab-upload" onclick="showTab('upload')">Hochladen</button>
+            </div>
+
+            <div id="generateSection" style="display: none">
+                <form id="generateForm">
+                    <div class="form-group">
+                        <label for="name">Vollständiger Name</label>
+                        <input type="text" id="name" required placeholder="z.B. Max Mustermann">
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Geschäftliche E-Mail</label>
+                        <input type="email" id="email" required placeholder="max@positron-it.de">
+                    </div>
+                    <div class="form-group">
+                        <label for="passphrase">Passphrase (Sicherheit für Ihren Key)</label>
+                        <input type="password" id="passphrase" placeholder="Optional, aber empfohlen">
+                    </div>
+                    <button type="submit" id="generateBtn">Schlüsselpaar erstellen & registrieren</button>
+                </form>
+            </div>
+
+            <div id="searchSection">
+                <div class="form-group">
+                    <label for="searchInput">E-Mail oder Name des Kollegen</label>
+                    <div style="display: flex; gap: 1rem">
+                        <input type="text" id="searchInput" placeholder="E-Mail oder Name des Kollegen..." style="flex: 1; padding: 18px 24px; font-size: 1.1rem;">
+                        <button id="searchBtn" class="btn btn-primary" style="width: auto; padding: 0 32px;">Suchen</button>
+                    </div>
+                </div>
+                <div id="searchResults" style="margin-top: 1rem">
+                    <!-- Results will be injected here -->
+                </div>
+            </div>
+
+            <div id="adminSection" style="display: none">
+                <div class="form-group">
+                    <label for="adminKey">Admin API Key</label>
+                    <input type="password" id="adminKey" placeholder="Geben Sie den Admin-Key ein">
+                </div>
+                <div id="adminControls" style="margin-top: 2rem">
+                    <h4>Schlüssel verwalten (Widerruf)</h4>
+                    <div class="form-group" style="margin-top: 1rem">
+                        <label for="revokeEmail">E-Mail des zu widerrufenden Nutzers</label>
+                        <input type="email" id="revokeEmail" placeholder="kollege@domain.de">
+                    </div>
+                    <div class="form-group">
+                        <label for="adminPrivKey">Ihr Admin Private Key (Revoker Key)</label>
+                        <textarea id="adminPrivKey" placeholder="-----BEGIN PGP PRIVATE KEY BLOCK-----"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="adminPassphrase">Admin Key Passphrase</label>
+                        <input type="password" id="adminPassphrase">
+                    </div>
+                    <button id="revokeBtn" class="btn btn-primary" style="background: var(--error)">Key offiziell widerrufen</button>
+                </div>
+            </div>
+
+            <div id="uploadSection" style="display: none;">
+                <form id="uploadForm">
+                    <div class="form-group">
+                        <label for="existingKey">Öffentlicher oder Privater Schlüssel (Armored)</label>
+                        <textarea id="existingKey" class="key-textarea" style="width:100%; height:150px; background:rgba(0,0,0,0.2); border:1px solid var(--border-color); border-radius:12px; color:white; padding:10px;" placeholder="-----BEGIN PGP MESSAGE----- ..."></textarea>
+                    </div>
+                    <div class="form-group" id="uploadPassphraseGroup">
+                        <label for="uploadPassphrase">Passphrase (zum Re-Signieren mit Revoker)</label>
+                        <input type="password" id="uploadPassphrase" placeholder="Passphrase Ihres Schlüssels">
+                    </div>
+                    <button type="submit" id="uploadBtn">Key aktualisieren & registrieren</button>
+                </form>
+            </div>
+
+            <div id="infoSection" style="display: none">
+                <h4>System-Konfiguration</h4>
+                <div class="key-box" style="margin-top: 1rem">
+                    <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px;">Zentraler Revoker Fingerprint</div>
+                    <code id="infoRevoker" style="word-break: break-all; color: var(--primary-color)"></code>
+                </div>
+                <div class="key-box" style="margin-top: 1rem">
+                    <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px;">Unterstützte Domains</div>
+                    <div id="infoDomains" style="font-weight: 600"></div>
+                </div>
+                <div style="margin-top: 2rem">
+                    <a href="/.well-known/openpgpkey/positron-it.de/hu/policy" target="_blank" class="btn" style="width: auto; padding: 8px 16px;">WKD Policy Datei öffnen</a>
+                </div>
+            </div>
+
+            <div class="spinner" id="spinner"></div>
+
+            <div class="results" id="results">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 style="margin:0">Ihre Schlüssel</h3>
+                    <div class="status-badge active">Revoker Aktiviert</div>
+                </div>
+                
+                <div class="key-box">
+                    <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px;">Öffentlicher Schlüssel</div>
+                    <pre id="pubKeyDisplay"></pre>
+                    <button class="copy-btn" onclick="copyToClipboard('pubKeyDisplay')">Kopieren</button>
+                </div>
+
+                <div class="key-box" id="privKeyBox">
+                    <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px;">Privater Schlüssel (Nur lokal sichtbar!)</div>
+                    <pre id="privKeyDisplay"></pre>
+                    <button class="copy-btn" onclick="copyToClipboard('privKeyDisplay')">Kopieren</button>
+                </div>
+
+                <div style="margin-top: 30px; text-align: center;">
+                    <p style="font-size: 0.875rem; color: var(--success);">
+                        ✅ Ihr Schlüssel wurde erfolgreich für das WKD registriert.
+                    </p>
+                    <button onclick="location.reload()" style="background:transparent; border:1px solid var(--primary-color); color:var(--primary-color); width:auto; padding:8px 24px;">Neustart</button>
+                </div>
+            </div>
         </div>
 
-        <form id="keyForm">
-            <div class="form-group">
-                <label for="name">Name:</label>
-                <input type="text" id="name" name="name" required placeholder="Max Mustermann">
+        <div style="margin-top: 20px; display: flex; justify-content: space-between; padding: 0 20px;">
+            <div style="font-size: 0.75rem; color: var(--text-muted);">
+                Revoker Key ID: <span id="revokerId">Lade...</span>
             </div>
-            
-            <div class="form-group">
-                <label for="email">E-Mail-Adresse:</label>
-                <input type="email" id="email" name="email" required placeholder="max@example.com">
-            </div>
-            
-            <div class="form-group">
-                <label for="passphrase">Passphrase (optional):</label>
-                <input type="password" id="passphrase" name="passphrase" placeholder="Sichere Passphrase">
-            </div>
-            
-            <button type="submit" id="generateBtn">Schlüsselpaar generieren</button>
-        </form>
-
-        <div class="progress" id="progress">
-            <div class="spinner"></div>
-            <p>Generiere Schlüsselpaar... Dies kann einen Moment dauern.</p>
-        </div>
-
-        <div class="results" id="results">
-            <div class="key-section">
-                <h3>Öffentlicher Schlüssel (public key):</h3>
-                <textarea class="key-textarea" id="publicKey" readonly></textarea>
-                <button class="download-btn" onclick="downloadKey('publicKey', 'public-key.asc')">
-                    Öffentlichen Schlüssel herunterladen
-                </button>
-            </div>
-            
-            <div class="key-section">
-                <h3>Privater Schlüssel (private key):</h3>
-                <textarea class="key-textarea" id="privateKey" readonly></textarea>
-                <button class="download-btn" onclick="downloadKey('privateKey', 'private-key.asc')">
-                    Privaten Schlüssel herunterladen
-                </button>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">
+                Domain: <span id="currentDomain">positron-it.de</span>
             </div>
         </div>
     </div>
 
-    <!-- OpenPGP.js CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/openpgp@6.2.1/dist/openpgp.min.js"></script>
+    <button class="help-btn" onclick="showTab('info')" title="WKD Status">?</button>
+
+    <script src="openpgp.min.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

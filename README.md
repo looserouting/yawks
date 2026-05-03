@@ -1,140 +1,80 @@
-# Yet Another Web Key Service
----------------------------
-<mark>This Code is not fully tested yet</mark>
+# YAWKS - Corporate PGP Key Management & WKD/WKS Server
 
-This is another approach for a web key service which is also a web key directory.
+YAWKS (Yet Another Web Key Service) is a professional, business-ready OpenPGP key management system. It combines a standard-compliant **Web Key Directory (WKD)** and **Web Key Service (WKS)** with advanced corporate features to ensure security, privacy, and administrative control.
 
-YAWKS (Yet Another Web Key Service) is an open-source web key service and directory for managing OpenPGP keys. It aims to simplify the process of storing and validating keys for email encryption and signature verification. Users can easily add their OpenPGP keys to the service by validating their email addresses through a simple key submission process.
+## 🌟 Key Features
 
-<mark>This WKS is working an described in https://datatracker.ietf.org/doc/html/draft-koch-openpgp-webkey-service-18</mark>
+### 🏢 Corporate PGP Management
+- **Designated Revoker Injection**: Automatically injects a corporate-controlled revocation key into user keys during generation or upload. This allows the organization to revoke keys if a device is lost or an employee leaves.
+- **Privacy by Design**: All cryptographic operations involving private keys (generation, re-signing, revoker injection) occur **locally in the user's browser**. Private keys are never transmitted to the server.
+- **Ownership Proof**: Every key submission is cryptographically signed by the user's private key, proving possession before registration.
 
-# Setup Guide
-------------
+### 💻 Premium User Dashboard
+- **Modern Interface**: A sleek, glassmorphism-inspired dark mode dashboard for employees.
+- **Key Generator**: One-click PGP key generation with automated corporate compliance.
+- **Key Import**: Support for importing existing keys with automated compliance injection.
+- **Employee Search**: Searchable directory for colleagues' public keys, integrated with WKD.
 
-## Prerequisites
-- Node.js
-- npm 
-- GnuPG 
+### 🛡️ Administrative Controls
+- **Admin Dashboard**: A protected management interface for administrators.
+- **Centralized Revocation**: Trigger official PGP revocations using the corporate Designated Revoker key.
+- **Advanced Authentication**: Admin actions are protected by API-key security.
 
-## Download yawks and install modules
+### 🛰️ WKD/WKS Standard Compliance
+- **Full WKD Support**: Implements both "Advanced" and "Direct" discovery methods.
+- **RFC Compliance**: Adheres to RFC 4880 and the WKD/WKS drafts.
+- **Traffic Analysis Protection**: Implements PGP Padding packets (Tag 21) to normalize response sizes and protect against traffic analysis.
+- **User ID Filtering**: Privacy-preserving key delivery that only serves the requested User ID.
+- **CORS Support**: Ready for integration with browser plugins like Mailvelope.
 
+## 🚀 Getting Started
+
+### Prerequisites
+- **Node.js** (v18+)
+- **NPM**
+- **SSL Certificate** (e.g., from Certbot)
+
+### Installation
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/looserouting/yawks.git
+   cd yawks
+   ```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Prepare the frontend:
+   ```bash
+   npm run prepare
+   ```
+
+### Configuration
+1. Copy the example config:
+   ```bash
+   cp src/config.js.example src/config.js
+   ```
+2. Edit `src/config.js` to set your domains, corporate revoker fingerprint, and admin keys.
+
+### Running the Server
+```bash
+node yaws.js
 ```
-cd /var/www
-git clone https://github.com/looserouting/yawks.git yawks
-cd yawks
-npm install
-```
+The server will automatically generate a `submission.key` upon first start if it doesn't exist.
 
-## DNS records
+## 📁 Project Structure
+- `src/controller/`: API logic for WKD, WKS, Search, and Revocation.
+- `src/model/`: Database schemas (Sequelize/SQLite).
+- `src/service/`: Core services including Mail (Outgoing), HTTPS, and Key Management.
+- `src/service/httpsServer/public/`: The premium web dashboard.
 
-example for domain positron-it.de
+## ⚙️ Architecture
+YAWKS Corporate Edition is optimized for a modern web workflow:
+1. **Key Creation**: User generates or imports a key in the browser.
+2. **Submission**: Public key and ownership proof are sent via HTTPS API.
+3. **Validation**: Server sends a signed validation email.
+4. **Activation**: User clicks the link to publish the key to WKD.
+This eliminates the need for complex incoming mail setups (IMAP/SMTP-Listening).
 
-```
-.           MX  openpgpkey.positron-it.de
-openpgpkey  A   <yawks server IP>
-```
-
-You probably need to add the server IP to your SPF record
-
-DKIM is not supported right now.
-
-### Create SSL certificate for yawks using certbot
-This certificate will be used by the mail server but it will also be used as the default certificate for the web server. The verification links will contain this domain.
-
-Install certbot if it's not already there.
-Then use the following command:
-
-```
-certbot certonly --standalone -n --agree-tos -m administrator@positron-it.de \
-      -d openpgpkey.positron-it.de
-```
-
-### Create submission key and publish it
-The server will send a signed mail with the validation link. For signing a key is needed which  needs to published so a MTA can verify the sender of that mail. 
-
-To create the key:
-```
-gpg --batch --passphrase '' --quick-gen-key key-submission@positron-it.de
-```
-
-Then get the wdk hash
-
-```
-gpg --with-wkd-hash -K key-submission@positron-it.de
-```
-
-The output of the last command looks similar to this:
-```
-sec   ed25519 2024-10-04 [SC] [expires: 2027-10-04]
-      B05AE83B237E5A8CC233D641B6586E5B8599779C
-uid           [ultimate] key-submission@positron-it.de
-              54f6ry7x1qqtpor16txw5gdmdbbh6a73@positron-it.de
-ssb   cv25519 2024-10-04 [E]
-
-```
-
-Take the hash of the string “key-submission”, which is 54f6ry7x1qqtpor16txw5gdmdbbh6a73 and manually publish that key:
-
-```
-mkdir -p /var/www/yawks/positron-it.de/hu
-gpg -o /var/www/yawks/positron-it.de/hu/54f6ry7x1qqtpor16txw5gdmdbbh6a73 \
-    --export-options export-minimal --export key-submission@positron-it.de
-```
-
-The private key which will be used for signing can be exported to the working directory
-
-```
-gpg --output /var/www/yaks/submission.key --armor \
-    --export-secret-key key-submission@positron-it.de
-```
-
-## Configuration
-
-`config.js`:
-
-Your configuration file could look like this
-```
-export default {
-    mail: 'sendmail',
-    smtp_mailaddress: 'key-submission@positron-it.de',
-    smtp_port: 25,
-    smtp_host: null,
-    smtp_authuser: null,
-    smtp_authpass: null,
-    directory: '/var/www/yawks/public',
-    domains: {
-        'openpgpkey.positron-it.de': {
-            DomainCert: '/etc/letsencrypt/live/openpgpkey.positron-it.de/cert.pem',
-            DomainKey: '/etc/letsencrypt/live/openpgpkey.positron-it.de/privkey.pem',
-            pgpprivkey: './submission.key',
-            pgppubkey: './positron-it.de/hu/54f6ry7x1qqtpor16txw5gdmdbbh6a73',
-            pgpkeypass: null
-        }
-    },
-  database_uri: 'sqlite://db.sqlite'
-}
-```
-
-
-If you set the `sendmail: true` in the `smtp` section then `smtp_host`, `smtp_port` and `smtp_auth` will be ignored.
-
-The smtp server will only accept mails from known domains which are send to the `smtp.mailaddress`.
-
-You can add more domains if you want to host keys for other domains. You will also need to add an A record for openpgpkey for this domains.
-
-## Allow node to bind to privileged ports
-
-```
-setcap 'cap_net_bind_service=+ep' $(which node)
-```
-
-# Usage
-
-To submit a key:
-
-- Send an email to the YAWKS server with your OpenPGP key attached.
-- Follow the validation link sent to your email. 
-
-# Contributing
-
-Contributions are welcome! Feel free to open an issue for any bugs or feature requests, or submit a pull request to improve the codebase. Please refer to our Issues page for ongoing discussions and tasks.
+## 📄 License
+This project is open-source and available under the MIT License.

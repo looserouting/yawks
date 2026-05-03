@@ -5,6 +5,7 @@
   "type": "module",
   "dependencies": {
     "express": "^4.0.0",
+    "imap": "^0.8.19",
     "mailparser": "^3.7.1",
     "nodemailer": "^7.0.0",
     "nodemailer-openpgp": "^2.2.1",
@@ -17,9 +18,12 @@
   "devDependencies": {
     "@eslint/js": "^9.0.0",
     "@types/mailparser": "^3.4.6",
-    "@types/nodemailer": "^6.4.17",
+    "@types/nodemailer": "^7.0.0",
     "@types/smtp-server": "^3.5.10",
     "eslint": "^9.0.0",
     "globals": "^16.0.0"
+  },
+  "scripts": {
+    "prepare": "cp node_modules/openpgp/dist/openpgp.min.js src/service/httpsServer/public/"
   }
 }

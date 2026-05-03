@@ -32,7 +32,7 @@ const defineKeys = (sequelize) => {
             allowNull: false
         },
         status: {
-            type: DataTypes.ENUM('pending','published'),
+            type: DataTypes.ENUM('pending','published', 'revoked'),
             allowNull: false
         },
         fingerprint: {
@@ -46,7 +46,27 @@ const defineKeys = (sequelize) => {
         },
     });
 
-    return Keys;
+    const Request = sequelize.define('Request', {
+        token: {
+            type: DataTypes.STRING(32),
+            allowNull: false,
+            unique: true
+        },
+        email: {
+            type: DataTypes.STRING,
+            allowNull: false
+        },
+        status: {
+            type: DataTypes.ENUM('pending', 'approved', 'rejected', 'revoked'),
+            defaultValue: 'pending'
+        },
+        requested_key_id: {
+            type: DataTypes.STRING, // wkdHash
+            allowNull: false
+        }
+    });
+
+    return { Keys, Request };
 };
 
 export default defineKeys;
