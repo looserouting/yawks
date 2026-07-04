@@ -87,17 +87,44 @@ export async function ensureCorporateRevocationKey() {
 
     const absolutePath = path.resolve(process.cwd(), keyPath);
 
-    if (!fs.existsSync(absolutePath)) {
-        logger.warn(`Corporate revocation key not found at ${absolutePath} – revocation enforcement disabled`);
+    if (fs.existsSync(absolutePath)) {
+        await loadCorporateRevocationKey(absolutePath);
         return;
     }
 
+    logger.info(`Corporate revocation key not found. Generating new key for ${config.smtp_mailaddress}...`);
+
+    try {
+        const { privateKey, publicKey } = await openpgp.generateKey({
+            type: 'ecc',
+            curve: 'ed25519',
+            userIDs: [{ name: 'YAWKS Corporate Revocation Key', email: config.smtp_mailaddress }],
+            passphrase: config.corporate_revocation_key_passphrase || ''
+        });
+
+        fs.writeFileSync(absolutePath, privateKey);
+        logger.info(`New corporate revocation private key saved to ${absolutePath}`);
+
+        const pubPath = absolutePath + '.pub';
+        fs.writeFileSync(pubPath, publicKey);
+        logger.info(`New corporate revocation public key saved to ${pubPath}`);
+
+        await loadCorporateRevocationKey(absolutePath);
+    } catch (err) {
+        logger.error(`Failed to generate corporate revocation key: ${err.message}`);
+        throw err;
+    }
+}
+
+/**
+ * Loads the corporate revocation key from disk.
+ */
+async function loadCorporateRevocationKey(absolutePath) {
     try {
         const armoredKey = fs.readFileSync(absolutePath, 'utf-8');
         corporateRevocationKey = await openpgp.readKey({ armoredKey });
         corporateRevocationFingerprint = corporateRevocationKey.getFingerprint().toUpperCase();
         corporateRevocationAlgorithm = corporateRevocationKey.getAlgorithmInfo().algorithm;
-
         logger.info(`Corporate revocation key loaded: ${corporateRevocationFingerprint} (algorithm: ${corporateRevocationAlgorithm})`);
     } catch (err) {
         logger.error(`Failed to load corporate revocation key: ${err.message}`);
