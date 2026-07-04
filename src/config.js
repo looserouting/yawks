@@ -20,9 +20,9 @@ export default {
     directory: './wkd_data', // Root directory for WKD files
 
     // --- Corporate & Privacy ---
-    // The fingerprint authorized to revoke user keys
-    corporate_revocation_fingerprint: '0000000000000000000000000000000000000000', 
-    corporate_revocation_algorithm: 1, 
+    // Key authorized to revoke user keys (fingerprint is derived automatically)
+    corporate_revocation_key_path: './corporate-revocation.key',
+    corporate_revocation_key_passphrase: '',
     enforce_revoker: true,
     
     admin_api_key: 'admin-secret-123',
