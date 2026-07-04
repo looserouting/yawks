@@ -7,10 +7,22 @@ import * as openpgp from 'openpgp';
 import config from '../../config.js';
 import { logger } from '../../service/logger.js';
 
-function getPublicKey(req, res) {
-    logger.info(`Key search request - Hostname: ${req.hostname}, Hash: ${req.params.hash}, Domain: ${req.params.domain}`);
+const VALID_DOMAIN = /^[a-zA-Z0-9.-]+$/;
+const VALID_HASH = /^[a-zA-Z0-9]+$/;
 
-    const fileName = path.join(config.directory, req.params.domain, 'hu', req.params.hash);
+function getPublicKey(req, res) {
+    const { domain, hash } = req.params;
+
+    if (!VALID_DOMAIN.test(domain)) {
+        return res.status(400).send('Invalid domain');
+    }
+    if (!VALID_HASH.test(hash)) {
+        return res.status(400).send('Invalid hash');
+    }
+
+    logger.info(`Key search request - Hostname: ${req.hostname}, Hash: ${hash}, Domain: ${domain}`);
+
+    const fileName = path.join(config.directory, domain, 'hu', hash);
     const email = req.query.l ? `${req.query.l}@${req.params.domain}` : null;
 
     fs.readFile(fileName, async (err, data) => {
@@ -67,9 +79,15 @@ function getPublicKey(req, res) {
     });
 }
 function getSubmissionAddress(req, res) {
-    logger.info(`Request for submission-address (${req.params.domain})`);
+    const { domain } = req.params;
 
-    const fileName = path.join(config.directory, req.params.domain, 'submission-address');
+    if (!VALID_DOMAIN.test(domain)) {
+        return res.status(400).send('Invalid domain');
+    }
+
+    logger.info(`Request for submission-address (${domain})`);
+
+    const fileName = path.join(config.directory, domain, 'submission-address');
 
     res.sendFile(fileName, (err) => {
         if (err) {
@@ -82,9 +100,15 @@ function getSubmissionAddress(req, res) {
 }
 
 function getPolicy(req, res) {
+    const { domain } = req.params;
+
+    if (!VALID_DOMAIN.test(domain)) {
+        return res.status(400).send('Invalid domain');
+    }
+
     logger.info('Request for policy');
 
-    const fileName = path.join(config.directory, req.params.domain, 'policy');
+    const fileName = path.join(config.directory, domain, 'policy');
 
     res.sendFile(fileName, (err) => {
         if (err) {
