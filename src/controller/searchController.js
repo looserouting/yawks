@@ -4,7 +4,8 @@ import { Op } from 'sequelize';
 import { logger } from '../service/logger.js';
 
 async function searchKeys(req, res) {
-    const { q } = req.query;
+    const raw = req.query.q;
+    const q = Array.isArray(raw) ? raw[0] : raw;
 
     if (!q || q.length < 3) {
         return res.status(400).send("Search query must be at least 3 characters long");
