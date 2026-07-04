@@ -24,8 +24,10 @@ export default {
     corporate_revocation_key_passphrase: '',
     enforce_revoker: true,
     
+    // Token for admin routes
     admin_api_key: 'change-this-secret',
     
+    // Padding Packet (Tag 21), Traffic-Analysis-Protection
     enable_padding: true,
     padding_block_size: 4096,
 
