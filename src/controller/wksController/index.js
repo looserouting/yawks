@@ -103,7 +103,7 @@ async function submitKey(req, res) {
         const allowedDomains = new Set(config.domains);
         if (!allowedDomains.has(domain)) {
             logger.warn(`Unauthorized domain submission attempt: ${domain}`);
-            return res.status(403).send(`Domain ${domain} is not authorized for this keyserver`);
+            return res.status(403).json({ error: `Domain not authorized for this keyserver` });
         }
 
         // 4. Generate WKD Hash
