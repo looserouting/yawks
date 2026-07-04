@@ -54,13 +54,13 @@ YAWKS (Yet Another Web Key Service) is a professional, business-ready OpenPGP ke
    ```bash
    cp src/config.js.example src/config.js
    ```
-2. Edit `src/config.js` to set your domains, corporate revoker fingerprint, and admin keys.
+2. Edit `src/config.js` to set your domains, corporate revocation key path, and admin keys.
 
 ### Running the Server
 ```bash
 node yaws.js
 ```
-The server will automatically generate a `submission.key` upon first start if it doesn't exist.
+The server will automatically generate a submission key and a corporate revocation key upon first start if they don't exist.
 
 ## 📁 Project Structure
 - `src/controller/`: API logic for WKD, WKS, Search, and Revocation.
